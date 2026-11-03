@@ -5,4 +5,6 @@ dist
 .nitro
 coverage
 *.tsbuildinfo
+__pycache__/
+*.pyc
 .env
