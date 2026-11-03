@@ -1,0 +1,6 @@
+interface:
+  display_name: "Implement Static Analysis Rule"
+  short_description: "Build fixture-tested static analysis rules"
+  default_prompt: "Use $implement-static-analysis-rule to add a repository static-analysis rule from this policy and positive code example, with an actionable diagnostic for coding agents."
+policy:
+  allow_implicit_invocation: false

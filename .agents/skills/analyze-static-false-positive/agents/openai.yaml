@@ -1,0 +1,6 @@
+interface:
+  display_name: "Review ESLint Finding or Rule"
+  short_description: "Review an ESLint log or rule and improve its guidance for coding agents"
+  default_prompt: "Use $analyze-static-false-positive with my FP, FN, unknown, or diagnose verdict and this ESLint log or rule identifier. Identify the rule implementation and current finding files, describe the rule in plain language, and propose guidance for more readable and predictable code without applying changes. In diagnose mode, accept the rule as correct and focus only on making its warning easier for an agent to understand and fix."
+policy:
+  allow_implicit_invocation: false

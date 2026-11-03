@@ -1,0 +1,6 @@
+interface:
+  display_name: "Audit Code Garbage"
+  short_description: "Find and prioritize code and test entropy without applying changes"
+  default_prompt: "Use $garbage-collection-audit to audit the current application code and tests, rank the strongest evidence-backed entropy clusters, recommend one bounded cleanup with verification, and report harness gaps without modifying files."
+policy:
+  allow_implicit_invocation: false

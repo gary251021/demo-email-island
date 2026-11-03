@@ -1,0 +1,7 @@
+interface:
+  display_name: "Project Create Issue"
+  short_description: "Create issues using this project's practice"
+  default_prompt: "Use $project-create-issue to create a GitLab issue according to this project's practice."
+
+policy:
+  allow_implicit_invocation: false

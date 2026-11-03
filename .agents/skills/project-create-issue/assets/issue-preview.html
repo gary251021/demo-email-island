@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Issue preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #14213d;
+        --muted: #67708a;
+        --paper: #fffdf5;
+        --wash: #f1efe5;
+        --line: #d9d5c8;
+        --accent: #c63d2c;
+        --accent-soft: #ffe2d8;
+        --blue: #1746a2;
+        --shadow: none;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        background: var(--wash);
+      }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          linear-gradient(
+            90deg,
+            transparent 0 47px,
+            rgb(239 77 55 / 9%) 48px 49px,
+            transparent 50px
+          ),
+          radial-gradient(
+            circle at 12% 8%,
+            rgb(23 70 162 / 8%),
+            transparent 24rem
+          ),
+          var(--wash);
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+      }
+
+      button {
+        font: inherit;
+      }
+
+      .topbar {
+        position: sticky;
+        z-index: 10;
+        top: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.8rem clamp(1rem, 3vw, 3rem);
+        border-bottom: 1px solid rgb(20 33 61 / 16%);
+        background: rgb(241 239 229 / 90%);
+        backdrop-filter: blur(16px);
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--ink);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 2rem;
+        height: 2rem;
+        place-items: center;
+        border: 1px solid var(--ink);
+        background: var(--accent);
+        box-shadow: 0 3px 10px rgb(0 0 0 / 14%);
+        color: white;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 0.5rem;
+      }
+
+      .action {
+        min-height: 2.25rem;
+        padding: 0.45rem 0.8rem;
+        border: 1px solid rgb(20 33 61 / 30%);
+        border-radius: 999px;
+        background: var(--paper);
+        color: var(--ink);
+        cursor: pointer;
+        font-size: 0.75rem;
+        font-weight: 700;
+      }
+
+      .action:hover,
+      .action:focus-visible {
+        border-color: var(--blue);
+        outline: 3px solid rgb(23 70 162 / 16%);
+      }
+
+      .action[aria-pressed="true"] {
+        border-color: var(--ink);
+        background: var(--ink);
+        color: white;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: minmax(13rem, 17rem) minmax(0, 52rem);
+        justify-content: center;
+        gap: clamp(1.25rem, 4vw, 4rem);
+        padding: clamp(1.5rem, 5vw, 5rem);
+      }
+
+      .rail {
+        align-self: start;
+        position: sticky;
+        top: 5.5rem;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.7rem;
+        color: var(--accent);
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+      }
+
+      .classification {
+        margin: 0;
+        font-family: "Iowan Old Style", Baskerville, serif;
+        font-size: clamp(1.5rem, 3vw, 2.3rem);
+        font-weight: 600;
+        line-height: 1.02;
+      }
+
+      .meta-list {
+        display: grid;
+        gap: 1rem;
+        margin: 2rem 0 0;
+      }
+
+      .meta-list div {
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--line);
+      }
+
+      .meta-list dt {
+        margin-bottom: 0.25rem;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .meta-list dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+        font-size: 0.86rem;
+        line-height: 1.45;
+      }
+
+      .labels {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-top: 1.5rem;
+      }
+
+      .label {
+        padding: 0.3rem 0.55rem;
+        border: 1px solid rgb(20 33 61 / 18%);
+        border-radius: 0.35rem;
+        background: white;
+        font-size: 0.75rem;
+        font-weight: 800;
+      }
+
+      .document {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid rgb(20 33 61 / 18%);
+        background: var(--paper);
+        box-shadow: var(--shadow);
+      }
+
+      .document-head {
+        position: relative;
+        padding: clamp(1.6rem, 5vw, 4rem);
+        border-bottom: 1px solid var(--line);
+      }
+
+      .document-head::before {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 1rem;
+        width: 4px;
+        background: var(--accent);
+        content: "";
+      }
+
+      .project {
+        margin: 0 0 1rem;
+        color: var(--blue);
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        max-width: 18ch;
+        margin: 0;
+        font-family: "Iowan Old Style", Baskerville, serif;
+        font-size: clamp(2.25rem, 6vw, 4.8rem);
+        font-weight: 600;
+        letter-spacing: -0.045em;
+        line-height: 0.98;
+      }
+
+      .document-body,
+      .raw-body {
+        padding: clamp(1.6rem, 5vw, 4rem);
+      }
+
+      .document-body {
+        font-family: Charter, "Bitstream Charter", Georgia, serif;
+        font-size: 1.02rem;
+        line-height: 1.72;
+      }
+
+      .document-body > :first-child {
+        margin-top: 0;
+      }
+
+      .document-body h2,
+      .document-body h3,
+      .document-body h4 {
+        scroll-margin-top: 5rem;
+        color: var(--ink);
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+        line-height: 1.18;
+      }
+
+      .document-body h2 {
+        margin: 3.2rem 0 1rem;
+        padding-top: 1.2rem;
+        border-top: 3px solid var(--ink);
+        font-size: 1.55rem;
+      }
+
+      .document-body h3 {
+        margin: 2.3rem 0 0.8rem;
+        color: var(--blue);
+        font-size: 1.12rem;
+      }
+
+      .document-body h4 {
+        margin-top: 1.8rem;
+        font-size: 1rem;
+      }
+
+      .document-body a {
+        color: var(--blue);
+        text-underline-offset: 0.18em;
+      }
+
+      .document-body code,
+      .raw-body {
+        font-family: "SFMono-Regular", Consolas, monospace;
+      }
+
+      .document-body :not(pre) > code {
+        padding: 0.12em 0.35em;
+        border: 1px solid #ddd6c8;
+        border-radius: 0.25rem;
+        background: #f3efe4;
+        color: #a52a1f;
+        font-size: 0.88em;
+      }
+
+      .document-body pre {
+        overflow-x: auto;
+        margin: 1.4rem 0;
+        padding: 1.1rem 1.25rem;
+        background: #18223a;
+        color: #f7f2e8;
+        font-size: 0.84rem;
+        line-height: 1.55;
+      }
+
+      .document-body .mermaid {
+        overflow-x: auto;
+        margin: 1.4rem 0;
+        padding: 1.25rem;
+        border: 1px solid var(--line);
+        background: white;
+        text-align: center;
+      }
+
+      .document-body .mermaid svg {
+        max-width: 100%;
+        height: auto;
+      }
+
+      .document-body .mermaid-error {
+        white-space: pre-wrap;
+        background: var(--accent-soft);
+        color: var(--accent);
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-size: 0.84rem;
+        text-align: left;
+      }
+
+      .document-body blockquote {
+        margin: 1.5rem 0;
+        padding: 0.7rem 1.1rem;
+        background: rgb(23 70 162 / 6%);
+        color: #3f4a65;
+      }
+
+      .document-body table {
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        border-collapse: collapse;
+        font-family: "Avenir Next", "Trebuchet MS", sans-serif;
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .document-body th,
+      .document-body td {
+        min-width: 8rem;
+        padding: 0.65rem 0.75rem;
+        border: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+
+      .document-body th {
+        background: var(--ink);
+        color: white;
+      }
+
+      .document-body tr:nth-child(even) td {
+        background: rgb(20 33 61 / 3%);
+      }
+
+      .document-body img {
+        display: block;
+        max-width: 100%;
+        margin: 1.5rem auto;
+        border: 1px solid var(--line);
+      }
+
+      .raw-body {
+        min-height: 30rem;
+        margin: 0;
+        overflow: auto;
+        white-space: pre-wrap;
+        color: #e9edf8;
+        background: #10182a;
+        font-size: 0.82rem;
+        line-height: 1.58;
+      }
+
+      .notice {
+        margin-top: 1.5rem;
+        padding: 0.8rem 0.9rem;
+        border: 1px solid #e5c8b8;
+        background: var(--accent-soft);
+        color: #703129;
+        font-size: 0.75rem;
+        line-height: 1.45;
+      }
+
+      [hidden] {
+        display: none !important;
+      }
+
+      @media (max-width: 1024px) {
+        .shell {
+          grid-template-columns: 1fr;
+          padding: 1rem;
+        }
+
+        .rail {
+          position: static;
+          padding: 1rem;
+          border: 1px solid var(--line);
+          background: rgb(255 253 245 / 74%);
+        }
+
+        .meta-list {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .topbar {
+          align-items: flex-start;
+        }
+
+        .brand span:last-child {
+          display: none;
+        }
+      }
+
+      @media print {
+        body {
+          background: white;
+        }
+
+        .topbar,
+        .notice {
+          display: none;
+        }
+
+        .shell {
+          display: block;
+          padding: 0;
+        }
+
+        .rail {
+          position: static;
+          margin-bottom: 1rem;
+        }
+
+        .document {
+          border: 0;
+          box-shadow: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">#</span>
+        <span>Issue confirmation docket</span>
+      </div>
+      <div class="actions" aria-label="Preview actions">
+        <button
+          class="action"
+          id="view-toggle"
+          type="button"
+          aria-pressed="false"
+        >
+          Raw Markdown
+        </button>
+        <button class="action" id="copy-button" type="button">
+          Copy Markdown
+        </button>
+        <button class="action" type="button" onclick="window.print()">
+          Print
+        </button>
+      </div>
+    </header>
+
+    <main class="shell">
+      <aside class="rail" aria-label="Issue metadata">
+        <p class="eyebrow">Semantic classification</p>
+        <p class="classification" id="classification"></p>
+        <div class="labels" id="labels" aria-label="Labels"></div>
+        <dl class="meta-list">
+          <div>
+            <dt>Production base</dt>
+            <dd id="production-base"></dd>
+          </div>
+          <div>
+            <dt>Development target</dt>
+            <dd id="development-target"></dd>
+          </div>
+          <div>
+            <dt>Production path</dt>
+            <dd id="production-path"></dd>
+          </div>
+        </dl>
+        <p class="notice">
+          Local visual aid. The Raw Markdown view is the exact tracker source of
+          truth.
+        </p>
+      </aside>
+
+      <article class="document">
+        <header class="document-head">
+          <p class="project" id="project"></p>
+          <h1 id="issue-title"></h1>
+        </header>
+        <section class="document-body" id="rendered-body"></section>
+        <pre class="raw-body" id="raw-body" hidden></pre>
+      </article>
+    </main>
+
+    <script type="application/json" id="issue-preview-data">
+      __ISSUE_PREVIEW_DATA_PLACEHOLDER__
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11.17.2/dist/mermaid.min.js"></script>
+    <script>
+      const sample = {
+        project: "group / project",
+        title: "[Scope] Exact issue title",
+        classification: "fix",
+        labels: ["ai-agent", "-bug"],
+        delivery: {
+          productionBase: "v0.0.0",
+          developmentTarget: "configured development target",
+          productionPath: "configured production path",
+        },
+        bodyMarkdown:
+          "## For Human\n\n### Problem\n\nReplace the preview data placeholder to render the exact issue body.\n\n### How to verify\n\n- Review the complete issue.\n\n## For Agent\n\n### Objective\n\nPreview reference.\n\n### Acceptance criteria\n\n- The complete issue is visible.\n- Raw Markdown remains available.",
+      };
+
+      const dataNode = document.querySelector("#issue-preview-data");
+      const source = dataNode.textContent.trim();
+      const emptyPlaceholder = [
+        "__ISSUE",
+        "_PREVIEW_DATA_",
+        "PLACEHOLDER__",
+      ].join("");
+      const issue = source === emptyPlaceholder ? sample : JSON.parse(source);
+
+      const escapeHtml = (value) =>
+        String(value)
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+
+      function inlineMarkdown(value) {
+        const code = [];
+        let html = escapeHtml(value).replace(/`([^`]+)`/g, (_, text) => {
+          code.push(`<code>${text}</code>`);
+          return `\u0000CODE${code.length - 1}\u0000`;
+        });
+        html = html
+          .replace(
+            /!\[([^\]]*)\]\(([^\s)]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+            '<img src="$2" alt="$1" title="$3">',
+          )
+          .replace(
+            /\[([^\]]+)\]\(([^\s)]+)(?:\s+&quot;([^&]*)&quot;)?\)/g,
+            '<a href="$2" title="$3">$1</a>',
+          )
+          .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+          .replace(/__([^_]+)__/g, "<strong>$1</strong>")
+          .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+        return html.replace(
+          /\u0000CODE(\d+)\u0000/g,
+          (_, index) => code[Number(index)],
+        );
+      }
+
+      const splitCells = (line) =>
+        line
+          .trim()
+          .replace(/^\||\|$/g, "")
+          .split("|")
+          .map((cell) => cell.trim());
+
+      const isDivider = (line) =>
+        splitCells(line).every((cell) => /^:?-{3,}:?$/.test(cell));
+
+      function renderMarkdown(markdown) {
+        const lines = markdown.replaceAll("\r\n", "\n").split("\n");
+        const output = [];
+        let index = 0;
+
+        while (index < lines.length) {
+          const line = lines[index];
+          if (!line.trim()) {
+            index += 1;
+            continue;
+          }
+
+          if (/^```/.test(line)) {
+            const language = line.slice(3).trim();
+            const content = [];
+            index += 1;
+            while (index < lines.length && !/^```/.test(lines[index]))
+              content.push(lines[index++]);
+            index += 1;
+            output.push(
+              language.toLowerCase() === "mermaid"
+                ? `<div class="mermaid">${escapeHtml(content.join("\n"))}</div>`
+                : `<pre><code data-language="${escapeHtml(language)}">${escapeHtml(content.join("\n"))}</code></pre>`,
+            );
+            continue;
+          }
+
+          if (
+            ["<details>", "<summary>For Agent</summary>", "</details>"].includes(
+              line.trim(),
+            )
+          ) {
+            output.push(line.trim());
+            index += 1;
+            continue;
+          }
+
+          const heading = line.match(/^(#{1,4})\s+(.+)$/);
+          if (heading) {
+            const level = heading[1].length;
+            output.push(`<h${level}>${inlineMarkdown(heading[2])}</h${level}>`);
+            index += 1;
+            continue;
+          }
+
+          if (/^(---+|___+|\*\*\*+)$/.test(line.trim())) {
+            output.push("<hr>");
+            index += 1;
+            continue;
+          }
+
+          if (
+            line.includes("|") &&
+            index + 1 < lines.length &&
+            isDivider(lines[index + 1])
+          ) {
+            const headers = splitCells(line);
+            const rows = [];
+            index += 2;
+            while (
+              index < lines.length &&
+              lines[index].includes("|") &&
+              lines[index].trim()
+            ) {
+              rows.push(splitCells(lines[index++]));
+            }
+            output.push(
+              `<table><thead><tr>${headers.map((cell) => `<th>${inlineMarkdown(cell)}</th>`).join("")}</tr></thead><tbody>${rows.map((row) => `<tr>${row.map((cell) => `<td>${inlineMarkdown(cell)}</td>`).join("")}</tr>`).join("")}</tbody></table>`,
+            );
+            continue;
+          }
+
+          if (/^>\s?/.test(line)) {
+            const quote = [];
+            while (index < lines.length && /^>\s?/.test(lines[index]))
+              quote.push(lines[index++].replace(/^>\s?/, ""));
+            output.push(
+              `<blockquote>${quote.map(inlineMarkdown).join("<br>")}</blockquote>`,
+            );
+            continue;
+          }
+
+          const list = line.match(/^\s*([-*+] |\d+\. )/);
+          if (list) {
+            const ordered = /\d/.test(list[1]);
+            const items = [];
+            const pattern = ordered ? /^\s*\d+\.\s+(.+)$/ : /^\s*[-*+]\s+(.+)$/;
+            while (index < lines.length) {
+              const match = lines[index].match(pattern);
+              if (!match) break;
+              const item = [match[1]];
+              index += 1;
+              while (
+                index < lines.length &&
+                lines[index].trim() &&
+                /^\s+/.test(lines[index]) &&
+                !/^\s*([-*+] |\d+\. )/.test(lines[index])
+              ) {
+                item.push(lines[index].trim());
+                index += 1;
+              }
+              items.push(item.join(" "));
+            }
+            const tag = ordered ? "ol" : "ul";
+            output.push(
+              `<${tag}>${items.map((item) => `<li>${inlineMarkdown(item)}</li>`).join("")}</${tag}>`,
+            );
+            continue;
+          }
+
+          const paragraph = [line.trim()];
+          index += 1;
+          while (
+            index < lines.length &&
+            lines[index].trim() &&
+            !/^(#{1,4})\s|^```|^>\s?|^\s*([-*+] |\d+\. )/.test(lines[index]) &&
+            !(
+              lines[index].includes("|") &&
+              index + 1 < lines.length &&
+              isDivider(lines[index + 1])
+            )
+          )
+            paragraph.push(lines[index++].trim());
+          output.push(`<p>${inlineMarkdown(paragraph.join(" "))}</p>`);
+        }
+        return output.join("\n");
+      }
+
+      document.title = `${issue.title} — issue preview`;
+      document.querySelector("#project").textContent = issue.project;
+      document.querySelector("#issue-title").textContent = issue.title;
+      document.querySelector("#classification").textContent =
+        issue.classification;
+      document.querySelector("#production-base").textContent =
+        issue.delivery.productionBase;
+      document.querySelector("#development-target").textContent =
+        issue.delivery.developmentTarget;
+      document.querySelector("#production-path").textContent =
+        issue.delivery.productionPath;
+      document.querySelector("#labels").replaceChildren(
+        ...issue.labels.map((label) =>
+          Object.assign(document.createElement("span"), {
+            className: "label",
+            textContent: label,
+          }),
+        ),
+      );
+      document.querySelector("#rendered-body").innerHTML = renderMarkdown(
+        issue.bodyMarkdown,
+      );
+      document.querySelector("#raw-body").textContent = issue.bodyMarkdown;
+
+      const mermaidNodes = [...document.querySelectorAll(".mermaid")];
+      if (mermaidNodes.length) {
+        const mermaidSources = mermaidNodes.map((node) => node.textContent);
+        const showMermaidError = (message) =>
+          mermaidNodes.forEach((node, index) => {
+            node.classList.add("mermaid-error");
+            node.textContent = `${message}\n\n${mermaidSources[index]}`;
+          });
+
+        if (globalThis.mermaid) {
+          mermaid.initialize({ startOnLoad: false, securityLevel: "strict" });
+          mermaid
+            .run({ nodes: mermaidNodes })
+            .catch(() => showMermaidError("Mermaid diagram failed to render."));
+        } else {
+          showMermaidError("Mermaid could not be loaded.");
+        }
+      }
+
+      const toggle = document.querySelector("#view-toggle");
+      const rendered = document.querySelector("#rendered-body");
+      const raw = document.querySelector("#raw-body");
+      toggle.addEventListener("click", () => {
+        const showRaw = toggle.getAttribute("aria-pressed") !== "true";
+        toggle.setAttribute("aria-pressed", String(showRaw));
+        toggle.textContent = showRaw ? "Rendered issue" : "Raw Markdown";
+        rendered.hidden = showRaw;
+        raw.hidden = !showRaw;
+      });
+
+      const copyButton = document.querySelector("#copy-button");
+      copyButton.addEventListener("click", async () => {
+        await navigator.clipboard.writeText(issue.bodyMarkdown);
+        copyButton.textContent = "Copied";
+        setTimeout(() => (copyButton.textContent = "Copy Markdown"), 1200);
+      });
+    </script>
+  </body>
+</html>
