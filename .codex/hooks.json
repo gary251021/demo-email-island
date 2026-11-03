@@ -1,0 +1,144 @@
+{
+  "description": "Repository GitLab guardrails and implementation-task gates.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/require-harness-managed-edit-approval.py\"",
+            "timeout": 3,
+            "statusMessage": "Checking protected tooling edits"
+          }
+        ]
+      },
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-gitlab-guardrails.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking GitLab issue title and labels"
+          },
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-issue-integration.py\"",
+            "timeout": 10,
+            "statusMessage": "Preventing integration branch publication"
+          }
+        ]
+      },
+      {
+        "matcher": "(spawn_agent$|create_thread$|send_message_to_thread$)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-issue-integration.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking issue implementation task launch"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/require-harness-managed-edit-approval.py\" --capture-approval",
+            "timeout": 3,
+            "statusMessage": "Recording protected tooling edit approval"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "^Bash$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/workflow-state.mjs\" --hook",
+            "timeout": 3,
+            "statusMessage": "Checking workflow clarification state"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/request-ponytail-review.mjs\" --mark",
+            "timeout": 5,
+            "statusMessage": "Recording file change for Stop review"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/check-overdefensive.mjs\" --mark",
+            "timeout": 5,
+            "statusMessage": "Recording file change for over-defensive review"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/check-overdefensive.mjs\" --document",
+            "timeout": 5,
+            "statusMessage": "Checking markdown for over-defensive wording"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.agents/scripts/checkAgentsMdSize.mjs\" --hook",
+            "timeout": 5,
+            "statusMessage": "Checking AGENTS.md instruction budget"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/lint-changed-file.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Linting changed file"
+          },
+          {
+            "type": "command",
+            "command": "[ ! -f \".agents/skills/impeccable/scripts/hook.mjs\" ] || node \".agents/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Checking UI changes",
+            "commandWindows": "if exist \".agents/skills/impeccable/scripts/hook.mjs\" (node \".agents/skills/impeccable/scripts/hook.mjs\" & exit /b)"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/lint-changed-file.mjs\" --stop",
+            "timeout": 30,
+            "statusMessage": "Linting changed files before stopping"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/check-overdefensive.mjs\"",
+            "timeout": 15,
+            "statusMessage": "Checking over-defensive additions"
+          },
+          {
+            "type": "command",
+            "command": "[ ! -f \".agents/skills/impeccable/scripts/hook.mjs\" ] || node \".agents/skills/impeccable/scripts/hook.mjs\"",
+            "timeout": 30,
+            "statusMessage": "Design deep pass",
+            "commandWindows": "if exist \".agents/skills/impeccable/scripts/hook.mjs\" (node \".agents/skills/impeccable/scripts/hook.mjs\" & exit /b)"
+          },
+          {
+            "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/request-ponytail-review.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Requesting isolated reviewer"
+          }
+        ]
+      }
+    ]
+  }
+}
