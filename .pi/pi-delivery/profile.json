@@ -1,0 +1,68 @@
+{
+  "version": 1,
+  "implementer": {
+    "model": "openai/gpt-6-luna"
+  },
+  "concurrency": 3,
+  "maxReviewRounds": 8,
+  "extensions": ["~/Documents/work/agent/pi-compact-tools"],
+  "skills": {
+    "coordinator": [
+      ".agents/skills/project-skill-feedback/SKILL.md",
+      "~/.pi/agent/skills/skill-creator/SKILL.md",
+      "~/.pi/agent/npm/node_modules/pi-subagents/skills/pi-subagents/SKILL.md",
+      "~/.agents/skills/ask-matt/SKILL.md",
+      "~/.agents/skills/claude-handoff/SKILL.md",
+      "~/.agents/skills/code-review/SKILL.md",
+      "~/.agents/skills/codebase-design/SKILL.md",
+      "~/.agents/skills/design-an-interface/SKILL.md",
+      "~/.agents/skills/diagnosing-bugs/SKILL.md",
+      "~/.agents/skills/domain-modeling/SKILL.md",
+      "~/.agents/skills/edit-article/SKILL.md",
+      "~/.agents/skills/git-guardrails-claude-code/SKILL.md",
+      "~/.agents/skills/grill-me/SKILL.md",
+      "~/.agents/skills/grill-with-docs/SKILL.md",
+      "~/.agents/skills/grilling/SKILL.md",
+      "~/.agents/skills/handoff/SKILL.md",
+      "~/.agents/skills/implement/SKILL.md",
+      "~/.agents/skills/improve-codebase-architecture/SKILL.md",
+      "~/.agents/skills/loop-me/SKILL.md",
+      "~/.agents/skills/migrate-to-shoehorn/SKILL.md",
+      "~/.agents/skills/obsidian-vault/SKILL.md",
+      "~/.agents/skills/prototype/SKILL.md",
+      "~/.agents/skills/qa/SKILL.md",
+      "~/.agents/skills/request-refactor-plan/SKILL.md",
+      "~/.agents/skills/research/SKILL.md",
+      "~/.agents/skills/resolving-merge-conflicts/SKILL.md",
+      "~/.agents/skills/scaffold-exercises/SKILL.md",
+      "~/.agents/skills/setup-matt-pocock-skills/SKILL.md",
+      "~/.agents/skills/setup-pre-commit/SKILL.md",
+      "~/.agents/skills/setup-ts-deep-modules/SKILL.md",
+      "~/.agents/skills/tdd/SKILL.md",
+      "~/.agents/skills/teach/SKILL.md",
+      "~/.agents/skills/to-questionnaire/SKILL.md",
+      "~/.agents/skills/to-spec/SKILL.md",
+      "~/.agents/skills/to-tickets/SKILL.md",
+      "~/.agents/skills/triage/SKILL.md",
+      "~/.agents/skills/ubiquitous-language/SKILL.md",
+      "~/.agents/skills/wait-what/SKILL.md",
+      "~/.agents/skills/wayfinder/SKILL.md",
+      "~/.agents/skills/wizard/SKILL.md",
+      "~/.agents/skills/writing-beats/SKILL.md",
+      "~/.agents/skills/writing-for-agents/SKILL.md",
+      "~/.agents/skills/writing-fragments/SKILL.md",
+      "~/.agents/skills/writing-great-skills/SKILL.md",
+      "~/.agents/skills/writing-shape/SKILL.md"
+    ],
+    "implementer": [
+      ".agents/skills/nodejs-best-practices/SKILL.md",
+      ".agents/skills/vercel-react-best-practices/SKILL.md",
+      "~/.pi/agent/skills/codebase-design/SKILL.md"
+    ],
+    "standards": [
+      "~/.pi/agent/skills/code-review/SKILL.md",
+      "~/.pi/agent/skills/codebase-design/SKILL.md"
+    ],
+    "spec": ["~/.pi/agent/skills/code-review/SKILL.md"]
+  }
+}
