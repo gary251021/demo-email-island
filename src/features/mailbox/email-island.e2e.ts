@@ -158,6 +158,9 @@ test("AC-5 zero-unread-keeps-navigation", async ({ page, app }) => {
   await expect(
     page.getByRole("dialog", { name: "設計審批郵件", exact: true }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "郵件列表", exact: true }),
+  ).toBeFocused();
   await page.getByRole("button", { name: /^設計審批，/ }).focus();
   const quick = page.getByRole("button", {
     name: "設計審批：封存 1 封未讀",

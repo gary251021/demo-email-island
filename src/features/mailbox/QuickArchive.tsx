@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { MailScope } from "../../lib/mailbox";
 import { quickArchiveQueryOptions } from "./mailbox.queries";
@@ -17,6 +17,7 @@ export function QuickArchive({
   onUnauthenticated: () => void;
   children: React.ReactNode;
 }) {
+  const controls = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const preview = useQuery({
     ...quickArchiveQueryOptions(ownerKey, input),
@@ -30,15 +31,22 @@ export function QuickArchive({
   }, [error, onUnauthenticated]);
   return (
     <div
+      ref={controls}
       className="subcategory-controls"
       onMouseEnter={() => setVisible(true)}
-      onMouseLeave={() => setVisible(false)}
+      onMouseLeave={(event) => {
+        if (!event.currentTarget.contains(document.activeElement))
+          setVisible(false);
+      }}
       onFocus={(event) => {
         if (!event.currentTarget.contains(event.relatedTarget))
           setVisible(true);
       }}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget))
+        if (
+          !event.currentTarget.contains(event.relatedTarget) &&
+          !event.currentTarget.matches(":hover")
+        )
           setVisible(false);
       }}
     >
@@ -56,7 +64,14 @@ export function QuickArchive({
             onClick={() =>
               snapshot.mutate(
                 { ...input, mailIds },
-                { onError: () => void preview.refetch() },
+                {
+                  onError: () => {
+                    controls.current
+                      ?.querySelector<HTMLButtonElement>(".island-label")
+                      ?.focus();
+                    void preview.refetch();
+                  },
+                },
               )
             }
           >
