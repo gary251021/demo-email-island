@@ -17,7 +17,7 @@ function tier(count: number) {
   return "Lv. 4";
 }
 const label = (name: string, count: number) =>
-  `${name}，未讀 ${count} 封，${tier(count)}`;
+  `${name}，未讀 ${count} 封，待回覆 0 封，${tier(count)}`;
 
 async function seed(
   page: Page,
@@ -46,7 +46,7 @@ async function seed(
       for (let index = 0; index < category.count + (read ? 1 : 0); index++) {
         const id = randomUUID();
         db.prepare(
-          "INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at) VALUES (?,?,?,?,?,?,?,?,?)",
+          "INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at,requires_reply) VALUES (?,?,?,?,?,?,?,?,?,0)",
         ).run(
           id,
           owner.ownerKey,

@@ -545,6 +545,7 @@ test("incoming-and-changed-content-invalidation", async ({ page, app }) => {
     subject: "新團隊郵件",
     bodyText: "團隊同步",
     receivedAt: "2026-11-01T00:00:00.000Z",
+    requiresReply: false,
   };
   const added = write(app, owner, input);
   write(app, owner, { ...input, key: "q4-0", subject: "修改團隊內容" });
@@ -694,6 +695,7 @@ test("dispatch-failure-remains-visible-and-retries", async ({ page, app }) => {
       subject: "離線團隊信",
       bodyText: "團隊",
       receivedAt: "2026-11-01T00:00:00.000Z",
+      requiresReply: false,
     });
     await status(page, "complete with error");
     await openQ4(page);
@@ -778,6 +780,7 @@ test("stale-result-rejected-and-empty-mailbox-completed", async ({
     subject: "新內容團隊",
     bodyText: "團隊內容",
     receivedAt: "2026-11-01T00:00:00.000Z",
+    requiresReply: false,
   });
   await waitHeld("新內容團隊");
   const initialPlacement = rows(app, owner)[0]!.subcategory_id;
@@ -844,7 +847,7 @@ for (const successfulA of [false, true]) {
     const first = rows(app, owner)[0]!;
     const content = records(
       app,
-      `SELECT sender,body_text,received_at FROM mails WHERE id='${first.id}'`,
+      `SELECT sender,body_text,received_at,requires_reply FROM mails WHERE id='${first.id}'`,
     )[0]!;
     const original = {
       key: "q4-0",
@@ -853,6 +856,7 @@ for (const successfulA of [false, true]) {
       subject: first.subject,
       bodyText: String(content.body_text),
       receivedAt: String(content.received_at),
+      requiresReply: Boolean(content.requires_reply),
     };
     if (!successfulA)
       await plans([

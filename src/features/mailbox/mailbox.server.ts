@@ -3,11 +3,12 @@ import { randomUUID } from "node:crypto";
 import { db, transaction } from "../../lib/db.server";
 import {
   mailDetailSchema,
+  mailSummarySchema,
   mailListSchema,
   domainIdSchema,
   overviewSchema,
 } from "../../lib/mailbox";
-import type { ListMailInput, MailInput } from "../../lib/mailbox";
+import type { ListMailInput, MailInput, MailScope } from "../../lib/mailbox";
 import {
   matchMailTimeline,
   timelineMailSchema,
@@ -32,6 +33,7 @@ function seedMailbox(ownerKey: string) {
       for (const [index, source] of storySeed.sourceMails.entries()) {
         writeMailboxMail(ownerKey, {
           ...source,
+          requiresReply: z.boolean().parse(storySeed.requiresReply[index]),
           domainId: category.domainId,
           subcategoryId: categoryId,
           readAt:
@@ -56,6 +58,7 @@ function seedMailbox(ownerKey: string) {
         bodyText: category.body,
         receivedAt,
         readAt: category.unread === 0 ? receivedAt : null,
+        requiresReply: z.boolean().parse(category.requiresReply[index]),
       });
     }
   }
@@ -85,7 +88,8 @@ export function readOverview(ownerKey: string) {
   const categories = db
     .prepare(
       `SELECT s.id,s.domain_id,s.name,
-    COUNT(CASE WHEN m.read_at IS NULL THEN m.id END) AS unread_count
+    COUNT(CASE WHEN m.archived_at IS NULL AND m.read_at IS NULL THEN m.id END) AS unread_count,
+    COUNT(CASE WHEN m.archived_at IS NULL AND m.requires_reply = 1 AND NOT EXISTS (SELECT 1 FROM mail_replies r WHERE r.owner_id = m.owner_id AND r.mail_id = m.id) THEN m.id END) AS pending_count
     FROM subcategories s LEFT JOIN mails m ON m.owner_id = s.owner_id AND m.subcategory_id = s.id
     WHERE s.owner_id = ? GROUP BY s.id ORDER BY s.rowid`,
     )
@@ -105,10 +109,15 @@ export function readOverview(ownerKey: string) {
           id: category.id,
           name: category.name,
           unreadCount: category.unread_count,
+          pendingReplyCount: category.pending_count,
         }));
       return {
         ...domain,
         subcategories,
+        pendingReplyCount: subcategories.reduce(
+          (sum, category) => sum + Number(category.pendingReplyCount),
+          0,
+        ),
         unreadCount: subcategories.reduce(
           (sum, category) => sum + Number(category.unreadCount),
           0,
@@ -118,7 +127,7 @@ export function readOverview(ownerKey: string) {
   });
 }
 
-function requireCategory(ownerKey: string, input: ListMailInput) {
+function requireCategory(ownerKey: string, input: MailScope) {
   const category = db
     .prepare(
       "SELECT id FROM subcategories WHERE owner_id = ? AND domain_id = ? AND id = ?",
@@ -128,7 +137,9 @@ function requireCategory(ownerKey: string, input: ListMailInput) {
 }
 
 const mailColumns = `m.id,m.subcategory_id AS subcategoryId,m.sender,m.subject,
-  m.body_text AS bodyText,m.received_at AS receivedAt,m.read_at AS readAt`;
+  m.body_text AS bodyText,m.received_at AS receivedAt,m.read_at AS readAt,
+  m.archived_at AS archivedAt,m.requires_reply AS requiresReply,
+  (m.requires_reply = 1 AND NOT EXISTS (SELECT 1 FROM mail_replies r WHERE r.owner_id = m.owner_id AND r.mail_id = m.id)) AS hasPendingReply`;
 
 export function readMailList(ownerKey: string, input: ListMailInput) {
   db.exec("BEGIN");
@@ -137,18 +148,27 @@ export function readMailList(ownerKey: string, input: ListMailInput) {
     const mails = db
       .prepare(
         `SELECT ${mailColumns},m.seed_key AS seedKey FROM mails m
-       WHERE m.owner_id = ? AND m.subcategory_id = ? ORDER BY m.received_at DESC,m.id`,
+       WHERE m.owner_id = ? AND m.subcategory_id = ? AND m.archived_at IS ${input.view === "active" ? "NULL" : "NOT NULL"} ORDER BY m.received_at DESC,m.id`,
       )
       .all(ownerKey, input.subcategoryId);
-    const details = mailDetailSchema.array().parse(mails);
-    const unreadCount = unreadMailCount(details);
+    const summaries = mailSummarySchema.array().parse(
+      mails.map((mail) => ({
+        ...mail,
+        requiresReply: Boolean(mail.requiresReply),
+        hasPendingReply: Boolean(mail.hasPendingReply),
+      })),
+    );
+    const unreadCount = unreadMailCount(summaries);
     const result = mailListSchema.parse({
-      mails: details,
+      mails: summaries,
       unreadCount,
-      timeline: matchMailTimeline(
-        timelineMailSchema.array().parse(mails),
-        unreadCount,
-      ),
+      timeline:
+        input.view === "active"
+          ? matchMailTimeline(
+              timelineMailSchema.array().parse(mails),
+              unreadCount,
+            )
+          : null,
     });
     db.exec("COMMIT");
     return result;
@@ -167,7 +187,17 @@ export function readMail(ownerKey: string, input: MailInput) {
     )
     .get(ownerKey, input.domainId, input.subcategoryId, input.mailId);
   if (!mail) throw new Error("NOT_FOUND");
-  return mailDetailSchema.parse(mail);
+  const replies = db
+    .prepare(
+      "SELECT id,body_text AS bodyText,created_at AS createdAt FROM mail_replies WHERE owner_id = ? AND mail_id = ? ORDER BY created_at,id",
+    )
+    .all(ownerKey, input.mailId);
+  return mailDetailSchema.parse({
+    ...mail,
+    requiresReply: Boolean(mail.requiresReply),
+    hasPendingReply: Boolean(mail.hasPendingReply),
+    replies,
+  });
 }
 
 export function saveMailRead(ownerKey: string, input: MailInput) {
@@ -191,7 +221,17 @@ export function getClassificationInputs(ownerKey: string, ids?: string[]) {
           `SELECT ${mailColumns},m.placement_revision AS placementRevision
       FROM mails m WHERE m.owner_id = ? ORDER BY m.id`,
         )
-        .all(ownerKey),
+        .all(ownerKey)
+        .map((mail) => ({
+          ...mail,
+          requiresReply: Boolean(mail.requiresReply),
+          hasPendingReply: Boolean(mail.hasPendingReply),
+          replies: db
+            .prepare(
+              "SELECT id,body_text AS bodyText,created_at AS createdAt FROM mail_replies WHERE owner_id=? AND mail_id=? ORDER BY created_at,id",
+            )
+            .all(ownerKey, String(mail.id)),
+        })),
     )
     .filter((mail) => !ids || ids.includes(mail.id));
 }
@@ -238,6 +278,7 @@ export const importedMailSchema = z.strictObject({
   subject: z.string(),
   bodyText: z.string(),
   receivedAt: z.iso.datetime(),
+  requiresReply: z.boolean(),
 });
 
 export function importMail(
@@ -245,50 +286,54 @@ export function importMail(
   input: z.infer<typeof importedMailSchema>,
   onChanged: (mailId: string) => void,
 ) {
+  const data = importedMailSchema.parse(input);
   return transaction(() => {
     if (
       !db
         .prepare("SELECT id FROM subcategories WHERE owner_id = ? AND id = ?")
-        .get(ownerKey, input.subcategoryId)
+        .get(ownerKey, data.subcategoryId)
     )
       throw new Error("NOT_FOUND");
     const existing = db
       .prepare(
-        "SELECT id,sender,subject,body_text,received_at FROM mails WHERE owner_id = ? AND seed_key = ?",
+        "SELECT id,sender,subject,body_text,received_at,requires_reply FROM mails WHERE owner_id = ? AND seed_key = ?",
       )
-      .get(ownerKey, input.key);
+      .get(ownerKey, data.key);
     const id = existing ? String(existing.id) : randomUUID();
     if (
       existing &&
-      existing.sender === input.sender &&
-      existing.subject === input.subject &&
-      existing.body_text === input.bodyText &&
-      existing.received_at === input.receivedAt
+      existing.sender === data.sender &&
+      existing.subject === data.subject &&
+      existing.body_text === data.bodyText &&
+      existing.received_at === data.receivedAt &&
+      existing.requires_reply === Number(data.requiresReply)
     )
       return { mailId: id, changed: false };
     if (existing) {
       db.prepare(
-        "UPDATE mails SET sender=?,subject=?,body_text=?,received_at=? WHERE owner_id=? AND id=?",
+        "UPDATE mails SET sender=?,subject=?,body_text=?,received_at=?,requires_reply=? WHERE owner_id=? AND id=?",
       ).run(
-        input.sender,
-        input.subject,
-        input.bodyText,
-        input.receivedAt,
+        data.sender,
+        data.subject,
+        data.bodyText,
+        data.receivedAt,
+        Number(data.requiresReply),
         ownerKey,
         id,
       );
     } else {
       db.prepare(
-        "INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at) VALUES (?,?,?,?,?,?,?,?)",
+        "INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,requires_reply) VALUES (?,?,?,?,?,?,?,?,?)",
       ).run(
         id,
         ownerKey,
-        input.key,
-        input.subcategoryId,
-        input.sender,
-        input.subject,
-        input.bodyText,
-        input.receivedAt,
+        data.key,
+        data.subcategoryId,
+        data.sender,
+        data.subject,
+        data.bodyText,
+        data.receivedAt,
+        Number(data.requiresReply),
       );
     }
     onChanged(id);
@@ -302,6 +347,7 @@ const mailboxWriteSchema = timelineMailSchema
     domainId: domainIdSchema,
     subcategoryId: z.uuid(),
     readAt: z.iso.datetime().nullable(),
+    requiresReply: z.boolean(),
   })
   .strict();
 
@@ -323,11 +369,12 @@ export function writeMailboxMail(
     throw new Error("NOT_FOUND");
   db.prepare(
     `INSERT INTO mails
-    (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at)
-    VALUES (?,?,?,?,?,?,?,?,?)
+    (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at,requires_reply)
+    VALUES (?,?,?,?,?,?,?,?,?,?)
     ON CONFLICT(id) DO UPDATE SET seed_key=excluded.seed_key,
       subcategory_id=excluded.subcategory_id,sender=excluded.sender,subject=excluded.subject,
-      body_text=excluded.body_text,received_at=excluded.received_at,read_at=excluded.read_at
+      body_text=excluded.body_text,received_at=excluded.received_at,read_at=excluded.read_at,
+      requires_reply=excluded.requires_reply
     WHERE mails.owner_id=excluded.owner_id`,
   ).run(
     id,
@@ -339,6 +386,18 @@ export function writeMailboxMail(
     input.bodyText,
     input.receivedAt,
     input.readAt,
+    Number(input.requiresReply),
   );
   return { id };
+}
+
+// Does not open a transaction: the snapshot writer owns its atomic read+write scope.
+export function readActiveUnreadIds(ownerKey: string, input: MailScope) {
+  requireCategory(ownerKey, input);
+  return db
+    .prepare(
+      "SELECT id FROM mails WHERE owner_id=? AND subcategory_id=? AND archived_at IS NULL AND read_at IS NULL ORDER BY id",
+    )
+    .all(ownerKey, input.subcategoryId)
+    .map((mail) => String(mail.id));
 }

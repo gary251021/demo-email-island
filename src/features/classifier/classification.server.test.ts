@@ -240,6 +240,7 @@ it("mail import commits intent atomically, deduplicates content and protects ove
     subject: "new",
     bodyText: "content",
     receivedAt: "2026-11-01T00:00:00.000Z",
+    requiresReply: false,
   };
   const added = importClassifiedMail(id, input);
   expect(added.changed).toBe(true);
@@ -289,6 +290,7 @@ it("refreshes changed owner work and placements without refreshing identical sta
     subject: "請確認報價項目 · 新信",
     bodyText: "new content",
     receivedAt: "2026-11-01T00:00:00.000Z",
+    requiresReply: false,
   });
   await processOwner(id);
   const fastCompleted = classificationStatus(id);

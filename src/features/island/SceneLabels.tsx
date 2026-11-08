@@ -1,15 +1,20 @@
 import { useMemo, useRef } from "react";
 import type { RefObject } from "react";
+import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
 import { Html } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import type { RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
+import { QuickArchive } from "../mailbox/QuickArchive";
 import { getBuildingTier } from "../../lib/buildingTier";
 import { subcategoryPositions, tilePositions } from "./scene-layout";
 
 type Domain = Overview["domains"][number];
 type SceneLabelsProps = {
+  queryClient: QueryClient;
+  ownerKey: string;
+  onUnauthenticated: () => void;
   domains: Overview["domains"];
   domain?: Domain;
   selectedSubcategory?: string;
@@ -22,6 +27,8 @@ type Label = {
   position: [number, number, number];
   text: string;
   accessibleName?: string;
+  pendingCount?: number;
+  unreadCount?: number;
 } & (
   | { kind: "domain"; resourceId: DomainId }
   | { kind: "subcategory" | "anchor"; resourceId: string }
@@ -58,57 +65,80 @@ export function SceneLabels(props: SceneLabelsProps) {
       style={{ pointerEvents: "none" }}
       zIndexRange={[20, 10]}
     >
-      <div className="scene-label-layer">
-        {labels.map((label) => (
-          <div
-            key={label.key}
-            className="scene-label-position"
-            ref={(element) => {
-              if (element) {
-                elements.current.set(label.key, element);
-                positionElement(element, label.position, get());
-              } else elements.current.delete(label.key);
-            }}
-          >
-            {label.kind === "domain" && (
-              <button
-                type="button"
-                aria-label={label.accessibleName}
-                className="island-label"
-                onClick={() => props.onDomain(label.resourceId)}
-              >
-                {label.text}
-              </button>
-            )}
-            {label.kind === "subcategory" && (
-              <button
-                id={`subcategory-${label.resourceId}`}
-                type="button"
-                className="island-label"
-                aria-label={label.accessibleName}
-                aria-pressed={label.resourceId === props.selectedSubcategory}
-                onClick={() => props.onSubcategory(label.resourceId)}
-              >
-                {label.text}
-              </button>
-            )}
-            {label.kind === "token" && (
-              <span className="unread-token" aria-label={label.accessibleName}>
-                {label.text}
-              </span>
-            )}
-            {label.kind === "title" && (
-              <h1 className="island-label domain-title">{label.text}</h1>
-            )}
-            {label.kind === "anchor" && (
-              <span
-                className="building-anchor"
-                data-building={label.resourceId}
-              />
-            )}
-          </div>
-        ))}
-      </div>
+      <QueryClientProvider client={props.queryClient}>
+        <div className="scene-label-layer">
+          {labels.map((label) => (
+            <div
+              key={label.key}
+              className="scene-label-position"
+              ref={(element) => {
+                if (element) {
+                  elements.current.set(label.key, element);
+                  positionElement(element, label.position, get());
+                } else elements.current.delete(label.key);
+              }}
+            >
+              {label.kind === "domain" && (
+                <button
+                  type="button"
+                  aria-label={label.accessibleName}
+                  className="island-label"
+                  onClick={() => props.onDomain(label.resourceId)}
+                >
+                  {label.text}
+                  {label.unreadCount === 0 && Boolean(label.pendingCount) && (
+                    <span className="pending-token">待回覆</span>
+                  )}
+                </button>
+              )}
+              {label.kind === "subcategory" && props.domain && (
+                <QuickArchive
+                  ownerKey={props.ownerKey}
+                  input={{
+                    domainId: props.domain.id,
+                    subcategoryId: label.resourceId,
+                  }}
+                  name={label.text}
+                  onUnauthenticated={props.onUnauthenticated}
+                >
+                  <button
+                    id={`subcategory-${label.resourceId}`}
+                    type="button"
+                    className="island-label"
+                    aria-label={label.accessibleName}
+                    aria-pressed={
+                      label.resourceId === props.selectedSubcategory
+                    }
+                    onClick={() => props.onSubcategory(label.resourceId)}
+                  >
+                    {label.text}
+                  </button>
+                  {label.unreadCount === 0 && Boolean(label.pendingCount) && (
+                    <span className="pending-token">待回覆</span>
+                  )}
+                </QuickArchive>
+              )}
+              {label.kind === "token" && (
+                <span
+                  className="unread-token"
+                  aria-label={label.accessibleName}
+                >
+                  {label.text}
+                </span>
+              )}
+              {label.kind === "title" && (
+                <h1 className="island-label domain-title">{label.text}</h1>
+              )}
+              {label.kind === "anchor" && (
+                <span
+                  className="building-anchor"
+                  data-building={label.resourceId}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      </QueryClientProvider>
     </Html>
   );
 }
@@ -124,7 +154,13 @@ function createLabels(domains: Overview["domains"], domain?: Domain): Label[] {
           key: `domain-${item.id}`,
           kind: "domain",
           text: item.name,
-          accessibleName: buildingName(item.name, item.unreadCount),
+          unreadCount: item.unreadCount,
+          pendingCount: item.pendingReplyCount,
+          accessibleName: buildingName(
+            item.name,
+            item.unreadCount,
+            item.pendingReplyCount,
+          ),
           resourceId: item.id,
           position: [shiftedX, 0.12, z + labelZ],
         },
@@ -162,7 +198,13 @@ function createLabels(domains: Overview["domains"], domain?: Domain): Label[] {
         key: `subcategory-${subcategory.id}`,
         kind: "subcategory",
         text: subcategory.name,
-        accessibleName: buildingName(subcategory.name, subcategory.unreadCount),
+        unreadCount: subcategory.unreadCount,
+        pendingCount: subcategory.pendingReplyCount,
+        accessibleName: buildingName(
+          subcategory.name,
+          subcategory.unreadCount,
+          subcategory.pendingReplyCount,
+        ),
         resourceId: subcategory.id,
         position: [x, 0.14, z - 1.9],
       },
@@ -194,8 +236,8 @@ function positionElement(
   element.style.transform = `translate(${((projection.x + 1) * size.width) / 2}px, ${((-projection.y + 1) * size.height) / 2}px) translate(-50%, -50%)`;
 }
 
-function buildingName(name: string, count: number) {
+function buildingName(name: string, count: number, pending: number) {
   const tier = getBuildingTier(count);
   const level = tier === null ? "地基" : `Lv. ${tier}`;
-  return `${name}，未讀 ${count} 封，${level}`;
+  return `${name}，未讀 ${count} 封，待回覆 ${pending} 封，${level}`;
 }

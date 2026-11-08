@@ -39,13 +39,15 @@ describe("owner-scoped mailbox persistence", () => {
       domainId: "core-projects" as const,
       subcategoryId: category.id,
     };
-    const mail = readMailList(owner, listInput).mails[0];
+    const mail = readMailList(owner, { ...listInput, view: "active" }).mails[0];
     if (!mail) throw new Error("Missing mail");
     const input = { ...listInput, mailId: mail.id };
     const saved = saveMailRead(owner, input);
     expect(saveMailRead(owner, input)).toEqual(saved);
     initializeMailbox(owner);
-    expect(readMailList(owner, listInput).mails).toHaveLength(3);
+    expect(
+      readMailList(owner, { ...listInput, view: "active" }).mails,
+    ).toHaveLength(3);
     expect(readMail(owner, input).readAt).toBe(saved.readAt);
     expect(readOverview(owner).domains[0]?.unreadCount).toBe(3);
   });
@@ -85,9 +87,12 @@ describe("owner-scoped mailbox persistence", () => {
       domainId: "core-projects" as const,
       subcategoryId: category.id,
     };
-    const mail = readMailList(secondOwner, input).mails[0];
+    const mail = readMailList(secondOwner, { ...input, view: "active" })
+      .mails[0];
     if (!mail) throw new Error("Missing mail");
-    expect(() => readMailList(owner, input)).toThrow("NOT_FOUND");
+    expect(() => readMailList(owner, { ...input, view: "active" })).toThrow(
+      "NOT_FOUND",
+    );
     expect(() => readMail(owner, { ...input, mailId: mail.id })).toThrow(
       "NOT_FOUND",
     );
@@ -95,7 +100,11 @@ describe("owner-scoped mailbox persistence", () => {
       "NOT_FOUND",
     );
     expect(() =>
-      readMailList(secondOwner, { ...input, domainId: "internal-team" }),
+      readMailList(secondOwner, {
+        ...input,
+        domainId: "internal-team",
+        view: "active",
+      }),
     ).toThrow("NOT_FOUND");
     expect(
       readMail(secondOwner, { ...input, mailId: mail.id }).readAt,
@@ -109,8 +118,8 @@ describe("owner-scoped mailbox persistence", () => {
       db
         .prepare(
           `INSERT INTO mails
-      (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at)
-      VALUES (?,?,?,?,?,?,?,?)`,
+      (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,requires_reply)
+      VALUES (?,?,?,?,?,?,?,?,0)`,
         )
         .run(
           randomUUID(),
@@ -136,7 +145,7 @@ describe("timeline list snapshot and canonical writes", () => {
       domainId: "finance-bills" as const,
       subcategoryId: category.id,
     };
-    const before = readMailList(owner, input);
+    const before = readMailList(owner, { ...input, view: "active" });
     expect(before.timeline).not.toBeNull();
     const writer = new DatabaseSync(databasePath);
     const prepare = db.prepare.bind(db);
@@ -157,12 +166,12 @@ describe("timeline list snapshot and canonical writes", () => {
       return statement;
     });
     try {
-      expect(readMailList(owner, input)).toEqual(before);
+      expect(readMailList(owner, { ...input, view: "active" })).toEqual(before);
     } finally {
       spy.mockRestore();
       writer.close();
     }
-    const after = readMailList(owner, input);
+    const after = readMailList(owner, { ...input, view: "active" });
     expect(after.unreadCount).toBe(11);
     expect(after.timeline).toBeNull();
     expect(
@@ -177,14 +186,22 @@ describe("timeline list snapshot and canonical writes", () => {
     const mail = readMailList(secondOwner, {
       domainId: "core-projects",
       subcategoryId: category.id,
+      view: "active",
     }).mails[0];
     if (!mail) throw new Error("Missing source");
+    const source = readMail(secondOwner, {
+      domainId: "core-projects",
+      subcategoryId: category.id,
+      mailId: mail.id,
+    });
     const input = {
-      ...readMail(secondOwner, {
-        domainId: "core-projects",
-        subcategoryId: category.id,
-        mailId: mail.id,
-      }),
+      id: source.id,
+      sender: source.sender,
+      subject: source.subject,
+      bodyText: source.bodyText,
+      receivedAt: source.receivedAt,
+      readAt: source.readAt,
+      requiresReply: source.requiresReply,
       domainId: "core-projects" as const,
       subcategoryId: destination.id,
       seedKey: "write-test",
@@ -198,5 +215,43 @@ describe("timeline list snapshot and canonical writes", () => {
         domainId: "internal-team",
       }),
     ).toThrow("NOT_FOUND");
+  });
+});
+
+describe("reply persistence constraints", () => {
+  it("enforces reply owner/mail keys and orders simultaneous replies by id", () => {
+    const category = readOverview(secondOwner).domains[0]!.subcategories[0]!;
+    const input = {
+      domainId: "core-projects" as const,
+      subcategoryId: category.id,
+    };
+    const mail = readMailList(secondOwner, { ...input, view: "active" })
+      .mails[0]!;
+    const insert = db.prepare(
+      "INSERT INTO mail_replies (id,owner_id,mail_id,body_text,created_at) VALUES (?,?,?,?,?)",
+    );
+    expect(() =>
+      insert.run(
+        randomUUID(),
+        owner,
+        mail.id,
+        "wrong owner",
+        "2026-01-01T00:00:00.000Z",
+      ),
+    ).toThrow(/FOREIGN KEY/);
+    const ids = [
+      "90000000-0000-4000-8000-000000000002",
+      "90000000-0000-4000-8000-000000000001",
+    ];
+    for (const id of ids)
+      insert.run(id, secondOwner, mail.id, id, "2026-01-01T00:00:00.000Z");
+    expect(
+      readMail(secondOwner, { ...input, mailId: mail.id }).replies.map(
+        (reply) => reply.id,
+      ),
+    ).toEqual([...ids].reverse());
+    expect(
+      readMail(secondOwner, { ...input, mailId: mail.id }).hasPendingReply,
+    ).toBe(false);
   });
 });

@@ -1,8 +1,9 @@
 import { useEffect, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ListMailInput, MailInput } from "../../lib/mailbox";
+import type { ListMailInput, MailInput, MailView } from "../../lib/mailbox";
 import { mailListQueryOptions } from "./mailbox.queries";
 import { TimelineSummary } from "./TimelineSummary";
+import { MailActions } from "./MailActions";
 import { useMailReader } from "./useMailReader";
 
 type MailPanelProps = {
@@ -13,6 +14,7 @@ type MailPanelProps = {
   mailId?: string;
   onOpenMail: (mailId: string) => void;
   onBack: () => void;
+  onView: (view: MailView) => void;
   onClose: () => void;
   onUnauthenticated: () => void;
 };
@@ -36,7 +38,22 @@ export function MailPanel(props: MailPanelProps) {
       <header className="mail-panel-header">
         <div>
           <h1>{props.name}</h1>
-          <p>郵件</p>
+          <div className="mail-view-tabs" role="group" aria-label="郵件檢視">
+            <button
+              type="button"
+              aria-pressed={props.input.view === "active"}
+              onClick={() => props.onView("active")}
+            >
+              郵件
+            </button>
+            <button
+              type="button"
+              aria-pressed={props.input.view === "archived"}
+              onClick={() => props.onView("archived")}
+            >
+              已封存
+            </button>
+          </div>
         </div>
         <button
           ref={closeButton}
@@ -54,7 +71,11 @@ export function MailPanel(props: MailPanelProps) {
         <MailBody
           key={props.mailId}
           ownerKey={props.ownerKey}
-          input={{ ...props.input, mailId: props.mailId }}
+          input={{
+            domainId: props.input.domainId,
+            subcategoryId: props.input.subcategoryId,
+            mailId: props.mailId,
+          }}
           categoryEditor={props.renderCategoryEditor?.(props.mailId)}
           onBack={props.onBack}
           onUnauthenticated={props.onUnauthenticated}
@@ -80,7 +101,11 @@ function MailList({
   MailPanelProps,
   "ownerKey" | "input" | "onOpenMail" | "onUnauthenticated"
 >) {
+  const heading = useRef<HTMLHeadingElement>(null);
   const list = useQuery(mailListQueryOptions(ownerKey, input));
+  useEffect(() => {
+    heading.current?.focus();
+  }, [list.isSuccess, list.isFetching]);
   useUnauthenticated(list.error, onUnauthenticated);
   if (list.isPending || list.isFetching)
     return (
@@ -90,8 +115,6 @@ function MailList({
     );
   if (list.isError)
     return <ReadError error={list.error} retry={() => void list.refetch()} />;
-  if (list.data.mails.length === 0)
-    return <p className="panel-message">這裡還沒有郵件。</p>;
 
   return (
     <div
@@ -100,6 +123,12 @@ function MailList({
       aria-label="郵件內容"
       tabIndex={0}
     >
+      <h2 className="mail-list-title" ref={heading} tabIndex={-1}>
+        {input.view === "archived" ? "已封存列表" : "郵件列表"}
+      </h2>
+      {list.data.mails.length === 0 && (
+        <p className="panel-message">這裡還沒有郵件。</p>
+      )}
       {list.data.timeline && <TimelineSummary timeline={list.data.timeline} />}
       <ul className="mail-list" aria-label="郵件列表">
         {list.data.mails.map((mail) => (
@@ -169,6 +198,14 @@ function MailBody({
             </time>
           </div>
           <div className="mail-body-text">{detail.data.bodyText}</div>
+          <MailActions
+            ownerKey={ownerKey}
+            input={input}
+            mail={detail.data}
+            onArchived={onBack}
+            onUnauthenticated={onUnauthenticated}
+          />
+
           <div className="read-receipt" aria-live="polite">
             {save.isPending && <p role="status">正在保存已讀狀態…</p>}
             {save.isError && (

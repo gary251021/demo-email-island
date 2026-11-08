@@ -601,6 +601,145 @@ button.island-label:hover {
   }
 }
 
+.mail-view-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.6rem;
+}
+.mail-view-tabs button {
+  padding: 0.35rem 0.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #514638;
+  cursor: pointer;
+}
+.mail-view-tabs button[aria-pressed="true"] {
+  background: #e2cfab;
+}
+.mail-list-title {
+  font-size: 1rem;
+  margin: 1rem 1.5rem 0;
+}
+.mail-actions {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #d7c7ac;
+}
+.mail-actions form {
+  display: grid;
+  gap: 0.6rem;
+}
+.mail-actions label,
+.reply-history h3 {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.mail-actions textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 6rem;
+  padding: 0.7rem;
+  border: 1px solid #aa977c;
+  border-radius: 0.6rem;
+  background: #fff9ee;
+  color: #423b31;
+  font: inherit;
+  caret-color: #356583;
+}
+.mail-action-buttons {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.reply-button {
+  border: 0;
+  border-radius: 0.6rem;
+  padding: 0.6rem 1.4rem;
+  background: #426c87;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+.reply-button:hover {
+  background: #31566e;
+}
+.reply-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+.reply-history ol {
+  padding-left: 1.2rem;
+}
+.reply-history p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.reply-history time {
+  font-size: 0.8rem;
+  color: #665541;
+}
+.pending-reply {
+  color: #8d4435;
+  font-size: 0.9rem;
+}
+.subcategory-controls {
+  position: relative;
+  pointer-events: auto;
+  text-align: center;
+}
+.quick-archive {
+  display: block;
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 0.35rem;
+  white-space: nowrap;
+  padding: 0.45rem 0.65rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: #fff5e3;
+  color: #694737;
+  cursor: pointer;
+  box-shadow: 0 3px 8px #41372430;
+}
+.quick-archive:hover {
+  background: #ead6b4;
+}
+.quick-archive:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+.quick-archive-error {
+  position: absolute;
+  top: 3.7rem;
+  width: 15rem;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  background: #fff5e3;
+  color: #8d4435;
+  font-size: 0.8rem;
+}
+.pending-token {
+  display: block;
+  color: #8d4435;
+  font-size: 0.75rem;
+  background: #fff5e3;
+  border-radius: 999px;
+  margin-top: 0.2rem;
+  padding: 0.15rem 0.4rem;
+}
+.mail-actions :focus-visible,
+.quick-archive:focus-visible,
+.mail-view-tabs button:focus-visible {
+  outline: 3px solid #356583;
+  outline-offset: 3px;
+}
+
 .classification-control {
   position: absolute;
   z-index: 10;

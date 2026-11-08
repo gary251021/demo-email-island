@@ -10,36 +10,43 @@ import {
   darkStone,
   timber,
   darkTimber,
-  slate,
   cream,
   arch,
 } from "./building-primitives";
 export function BuildingFamily({
   domainId,
   tier,
+  roofColor,
 }: {
   domainId: DomainId;
   tier: BuildingTier;
+  roofColor: string;
 }) {
   const models = {
-    "core-projects": <Workshop tower={tier >= 3} />,
-    "internal-team": <Guildhall bell={tier >= 3} />,
-    newsletters: <Windmill printing={tier >= 3} tall={tier === 4} />,
-    "finance-bills": <Treasury />,
-    "system-alerts": <SignalTower />,
-    "social-events": <Canopy />,
-    "shopping-delivery": <Harbor />,
-    "low-priority": <SortingHouse />,
+    "core-projects": <Workshop roofColor={roofColor} tower={tier >= 3} />,
+    "internal-team": <Guildhall roofColor={roofColor} bell={tier >= 3} />,
+    newsletters: (
+      <Windmill roofColor={roofColor} printing={tier >= 3} tall={tier === 4} />
+    ),
+    "finance-bills": <Treasury roofColor={roofColor} />,
+    "system-alerts": <SignalTower roofColor={roofColor} />,
+    "social-events": <Canopy roofColor={roofColor} />,
+    "shopping-delivery": <Harbor roofColor={roofColor} />,
+    "low-priority": <SortingHouse roofColor={roofColor} />,
   };
   return models[domainId];
 }
 
-function Workshop({ tower }: { tower: boolean }) {
+function Workshop({ tower, roofColor }: { tower: boolean; roofColor: string }) {
   return (
     <group>
       <Block at={[0, 0.07, 0]} size={[1.7, 0.14, 1.3]} color={darkStone} />
       <Block at={[-0.2, 0.48, 0.03]} size={[1.12, 0.75, 0.91]} color={stone} />
-      <Roof at={[-0.2, 0.85, 0.03]} size={[1.35, 0.9, 1.13]} color={slate} />
+      <Roof
+        at={[-0.2, 0.85, 0.03]}
+        size={[1.35, 0.9, 1.13]}
+        color={roofColor}
+      />
       <Block
         at={[-0.2, 1.3, 0.03]}
         size={[0.055, 0.045, 1.15]}
@@ -80,7 +87,7 @@ function Workshop({ tower }: { tower: boolean }) {
   );
 }
 
-function Guildhall({ bell }: { bell: boolean }) {
+function Guildhall({ bell, roofColor }: { bell: boolean; roofColor: string }) {
   return (
     <group>
       <Block at={[0, 0.25, 0]} size={[1.38, 0.13, 1.1]} color={timber} />
@@ -95,7 +102,7 @@ function Guildhall({ bell }: { bell: boolean }) {
         )),
       )}
       <Block at={[0, 0.69, -0.1]} size={[1.03, 0.78, 0.83]} color="#cba783" />
-      <Roof at={[0, 1.08, -0.1]} size={[1.3, 0.85, 1.12]} color="#79927a" />
+      <Roof at={[0, 1.08, -0.1]} size={[1.3, 0.85, 1.12]} color={roofColor} />
       {[-0.46, 0.46].map((x) => (
         <Block
           key={x}
@@ -135,14 +142,22 @@ function Guildhall({ bell }: { bell: boolean }) {
             <cylinderGeometry args={[0.045, 0.09, 0.13, 8]} />
             <meshStandardMaterial color="#b89b59" roughness={0.8} />
           </mesh>
-          <Roof at={[0, 0.4, 0]} size={[0.44, 0.35, 0.42]} color="#71876a" />
+          <Roof at={[0, 0.4, 0]} size={[0.44, 0.35, 0.42]} color={roofColor} />
         </group>
       )}
     </group>
   );
 }
 
-function Windmill({ printing, tall }: { printing: boolean; tall: boolean }) {
+function Windmill({
+  printing,
+  tall,
+  roofColor,
+}: {
+  printing: boolean;
+  tall: boolean;
+  roofColor: string;
+}) {
   const lift = tall ? 0.5 : 0;
   return (
     <group>
@@ -152,7 +167,7 @@ function Windmill({ printing, tall }: { printing: boolean; tall: boolean }) {
       </mesh>
       <mesh position={[-0.32, 1.45 + lift, 0]} castShadow>
         <coneGeometry args={[0.5, 0.48, 12]} />
-        <meshStandardMaterial color="#b67a5f" roughness={1} flatShading />
+        <meshStandardMaterial color={roofColor} roughness={1} flatShading />
       </mesh>
       <Door at={[-0.32, 0.3, 0.43]} />
       <Block at={[0.46, 0.3, -0.13]} size={[0.83, 0.5, 0.72]} color={stone} />
@@ -162,14 +177,14 @@ function Windmill({ printing, tall }: { printing: boolean; tall: boolean }) {
             key={x}
             at={[x, 0.55, -0.13]}
             size={[0.44, 0.5, 0.84]}
-            color="#9d715b"
+            color={roofColor}
           />
         ))
       ) : (
         <Roof
           at={[0.46, 0.55, -0.13]}
           size={[1.02, 0.5, 0.9]}
-          color="#9d715b"
+          color={roofColor}
         />
       )}
       <Window at={[0.27, 0.32, 0.25]} />
@@ -205,7 +220,7 @@ function Windmill({ printing, tall }: { printing: boolean; tall: boolean }) {
   );
 }
 
-function Treasury() {
+function Treasury({ roofColor }: { roofColor: string }) {
   return (
     <group>
       <Block at={[0, 0.06, 0]} size={[1.56, 0.12, 1.43]} color={darkStone} />
@@ -217,7 +232,7 @@ function Treasury() {
         castShadow
         receiveShadow
       >
-        <meshStandardMaterial color={slate} roughness={1} flatShading />
+        <meshStandardMaterial color={roofColor} roughness={1} flatShading />
       </mesh>
       {[-0.67, -0.33, 0, 0.33, 0.67].map((z) => (
         <mesh key={z} position={[0, 0.8, z]} scale={[0.76, 0.6, 1]} castShadow>
@@ -244,11 +259,11 @@ function Treasury() {
   );
 }
 
-function SignalTower() {
+function SignalTower({ roofColor }: { roofColor: string }) {
   return (
     <group>
       <Block at={[0.4, 0.33, 0.14]} size={[0.83, 0.59, 0.72]} color="#b27f64" />
-      <Roof at={[0.4, 0.62, 0.14]} size={[1, 0.45, 0.9]} color="#a56c52" />
+      <Roof at={[0.4, 0.62, 0.14]} size={[1, 0.45, 0.9]} color={roofColor} />
       <Door at={[0.4, 0.25, 0.52]} />
       <group position={[-0.42, 0, -0.15]}>
         {[-0.3, 0.3].flatMap((x) =>
@@ -284,7 +299,7 @@ function SignalTower() {
             />
           </group>
         ))}
-        <Roof at={[0, 1.78, 0]} size={[0.95, 0.4, 0.9]} color="#b37e5c" />
+        <Roof at={[0, 1.78, 0]} size={[0.95, 0.4, 0.9]} color={roofColor} />
         <mesh position={[0, 2.13, 0]} castShadow>
           <cylinderGeometry args={[0.13, 0.16, 0.28, 8]} />
           <meshStandardMaterial color="#d8b76a" roughness={1} />
@@ -298,7 +313,7 @@ function SignalTower() {
   );
 }
 
-function Canopy() {
+function Canopy({ roofColor }: { roofColor: string }) {
   return (
     <group>
       <mesh position={[0, 0.07, 0]} receiveShadow castShadow>
@@ -308,7 +323,7 @@ function Canopy() {
       <mesh position={[0, 1.08, 0]} castShadow>
         <coneGeometry args={[1, 1.02, 8, 1, true]} />
         <meshStandardMaterial
-          color="#c98470"
+          color={roofColor}
           roughness={1}
           side={2}
           flatShading
@@ -344,7 +359,7 @@ function Canopy() {
   );
 }
 
-function Harbor() {
+function Harbor({ roofColor }: { roofColor: string }) {
   return (
     <group>
       <Block at={[0, 0.19, 0.34]} size={[1.7, 0.13, 1.55]} color="#ad8f69" />
@@ -371,7 +386,11 @@ function Harbor() {
         size={[0.94, 0.62, 0.77]}
         color="#ac8261"
       />
-      <Roof at={[0.21, 0.88, -0.09]} size={[1.2, 0.65, 0.97]} color="#937767" />
+      <Roof
+        at={[0.21, 0.88, -0.09]}
+        size={[1.2, 0.65, 0.97]}
+        color={roofColor}
+      />
       <Door at={[0.21, 0.47, 0.315]} size={[0.36, 0.4, 0.035]} />
       <Crates at={[-0.57, 0.27, 0.47]} />
       <Crates at={[0.44, 0.27, 0.58]} />
@@ -379,13 +398,21 @@ function Harbor() {
   );
 }
 
-function SortingHouse() {
+function SortingHouse({ roofColor }: { roofColor: string }) {
   return (
     <group>
       <Block at={[-0.18, 0.06, 0]} size={[1.35, 0.12, 1.11]} color="#c4aa85" />
       <Block at={[-0.18, 0.45, 0]} size={[1.06, 0.7, 0.89]} color="#d9be94" />
-      <Block at={[-0.18, 0.85, 0]} size={[1.25, 0.13, 1.06]} color="#bfa98e" />
-      <Block at={[0.68, 0.61, 0.1]} size={[0.72, 0.07, 1.1]} color="#b29476" />
+      <Block
+        at={[-0.18, 0.85, 0]}
+        size={[1.25, 0.13, 1.06]}
+        color={roofColor}
+      />
+      <Block
+        at={[0.68, 0.61, 0.1]}
+        size={[0.72, 0.07, 1.1]}
+        color={roofColor}
+      />
       <Block at={[0.96, 0.35, 0.52]} size={[0.06, 0.58, 0.06]} color={timber} />
       <Block
         at={[0.96, 0.35, -0.34]}

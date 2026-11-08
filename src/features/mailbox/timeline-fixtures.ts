@@ -36,6 +36,7 @@ export async function list(page: Page, input: Story) {
       await rpc(page, "listMail", {
         domainId: input.domainId,
         subcategoryId: input.subcategoryId,
+        view: "active",
       }),
     ),
   );
@@ -56,8 +57,8 @@ export function configureStory(dbPath: string, input: Story, unread: number) {
     );
     for (const [index, mail] of websiteTimeline.sourceMails.entries()) {
       db.prepare(
-        `INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at)
-        VALUES (?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at,requires_reply)
+        VALUES (?,?,?,?,?,?,?,?,?,0)`,
       ).run(
         randomUUID(),
         input.ownerKey,
@@ -80,7 +81,7 @@ export function sourceMail(dbPath: string, input: Story, id?: string) {
     const row = db
       .prepare(
         `SELECT id,seed_key AS seedKey,sender,subject,body_text AS bodyText,
-      received_at AS receivedAt,read_at AS readAt FROM mails WHERE owner_id=? AND subcategory_id=?
+      received_at AS receivedAt,read_at AS readAt,requires_reply AS requiresReply FROM mails WHERE owner_id=? AND subcategory_id=?
       ${id ? "AND id=?" : ""} ORDER BY received_at DESC LIMIT 1`,
       )
       .get(
@@ -97,9 +98,10 @@ export function sourceMail(dbPath: string, input: Story, id?: string) {
         bodyText: true,
         receivedAt: true,
         readAt: true,
+        requiresReply: true,
       })
       .extend({ seedKey: z.string() })
-      .parse(row);
+      .parse({ ...row, requiresReply: Boolean(row.requiresReply) });
   } finally {
     db.close();
   }
@@ -161,8 +163,8 @@ export function configureLegacyMailbox(dbPath: string, input: Story) {
     );
     for (let index = 0; index < 11; index++) {
       db.prepare(
-        `INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at)
-        VALUES (?,?,?,?,?,?,?,?,?)`,
+        `INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at,requires_reply)
+        VALUES (?,?,?,?,?,?,?,?,?,0)`,
       ).run(
         randomUUID(),
         input.ownerKey,

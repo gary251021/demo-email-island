@@ -185,6 +185,7 @@ it("ignores a stale waiting generation before the current A performs its two pro
       subject: mail.subject,
       bodyText: mail.bodyText,
       receivedAt: mail.receivedAt,
+      requiresReply: mail.requiresReply,
     };
     const a0 = ownerWorks(owner)[0]!;
     await dispatchPending();

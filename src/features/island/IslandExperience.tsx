@@ -93,6 +93,8 @@ export function IslandExperience({
         }
       >
         <IslandScene
+          ownerKey={ownerKey}
+          onUnauthenticated={leave}
           domains={query.data.domains}
           domain={domain}
           selectedSubcategory={selection.subcategory}
@@ -142,6 +144,7 @@ export function IslandExperience({
               overview={query.data}
               onSaved={(domainId, subcategoryId) =>
                 onNavigate({
+                  ...selection,
                   domain: domainId,
                   subcategory: subcategoryId,
                   mail: mailId,
@@ -151,7 +154,12 @@ export function IslandExperience({
           )}
           ownerKey={ownerKey}
           name={subcategory.name}
-          input={{ domainId: domain.id, subcategoryId: subcategory.id }}
+          input={{
+            domainId: domain.id,
+            subcategoryId: subcategory.id,
+            view: selection.view ?? "active",
+          }}
+          onView={(view) => onNavigate({ ...returnToList(selection), view })}
           mailId={selection.mail}
           onOpenMail={(mailId) => onNavigate({ ...selection, mail: mailId })}
           onBack={() => onNavigate(returnToList(selection))}

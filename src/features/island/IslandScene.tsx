@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Canvas, useThree } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import { ExtrudeGeometry, Shape } from "three";
@@ -13,6 +14,8 @@ import {
 
 type Domain = Overview["domains"][number];
 type IslandSceneProps = {
+  ownerKey: string;
+  onUnauthenticated: () => void;
   domains: Overview["domains"];
   domain?: Domain;
   panelOpen: boolean;
@@ -33,6 +36,7 @@ const terrainColors: Record<DomainId, string> = {
 };
 
 export function IslandScene(props: IslandSceneProps) {
+  const queryClient = useQueryClient();
   const [portal, setPortal] = useState<HTMLDivElement | null>(null);
   return (
     <div className="scene-canvas">
@@ -52,7 +56,11 @@ export function IslandScene(props: IslandSceneProps) {
           }
         >
           <color attach="background" args={["#45afc4"]} />
-          <SceneLabels {...props} portal={{ current: portal }} />
+          <SceneLabels
+            {...props}
+            queryClient={queryClient}
+            portal={{ current: portal }}
+          />
           <CameraFraming
             singleTile={Boolean(props.domain)}
             panelOpen={props.panelOpen}
@@ -192,7 +200,11 @@ function Archipelago({ domains, onDomain }: IslandSceneProps) {
               document.body.style.cursor = "";
             }}
           >
-            <Building domainId={domain.id} unreadCount={domain.unreadCount} />
+            <Building
+              domainId={domain.id}
+              unreadCount={domain.unreadCount}
+              hasPendingReply={domain.pendingReplyCount > 0}
+            />
           </group>
           {domain.id !== "low-priority" && <Trees />}
         </group>
@@ -228,6 +240,7 @@ function DomainBoard({
             <Building
               domainId={domain.id}
               unreadCount={subcategory.unreadCount}
+              hasPendingReply={subcategory.pendingReplyCount > 0}
             />
           </group>
         </group>

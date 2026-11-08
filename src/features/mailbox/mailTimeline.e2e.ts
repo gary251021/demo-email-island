@@ -100,7 +100,7 @@ test("timeline-tier-boundaries", async ({ page, app }) => {
     if (count === 10 || count === 29)
       await expect(
         page.getByRole("button", {
-          name: `財務帳單，未讀 ${count} 封，Lv. 3`,
+          name: `財務帳單，未讀 ${count} 封，待回覆 0 封，Lv. 3`,
           exact: true,
         }),
       ).toBeVisible();
@@ -137,7 +137,7 @@ test("read-crosses-city-boundaries", async ({ page, app }) => {
     await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
     await expect(
       page.getByRole("button", {
-        name: `待處理帳單，未讀 ${count - 1} 封，Lv. ${count === 10 ? 2 : 3}`,
+        name: `待處理帳單，未讀 ${count - 1} 封，待回覆 0 封，Lv. ${count === 10 ? 2 : 3}`,
         exact: true,
       }),
     ).toBeFocused();
@@ -369,8 +369,16 @@ test("owner-isolation-and-direct-requests", async ({ page, browser, app }) => {
     await openStory(b);
     await expect(timeline(b)).toHaveCount(0);
     for (const input of [
-      { domainId: bi.domainId, subcategoryId: bi.subcategoryId },
-      { domainId: "core-projects", subcategoryId: a.subcategoryId },
+      {
+        domainId: bi.domainId,
+        subcategoryId: bi.subcategoryId,
+        view: "active",
+      },
+      {
+        domainId: "core-projects",
+        subcategoryId: a.subcategoryId,
+        view: "active",
+      },
     ]) {
       const response = await rpc(page, "listMail", input);
       expect(response).toEqual({ ok: false, error: "NOT_FOUND" });
@@ -381,6 +389,7 @@ test("owner-isolation-and-direct-requests", async ({ page, browser, app }) => {
         await rpc(page, "listMail", {
           domainId: a.domainId,
           subcategoryId: a.subcategoryId,
+          view: "active",
           ownerKey: bi.ownerKey,
         })
       ).ok,
@@ -390,6 +399,7 @@ test("owner-isolation-and-direct-requests", async ({ page, browser, app }) => {
       await rpc(noIdentity, "listMail", {
         domainId: a.domainId,
         subcategoryId: a.subcategoryId,
+        view: "active",
       }),
     ).toEqual({ ok: false, error: "UNAUTHENTICATED" });
     expect((await list(page, a)).timeline?.stages).toEqual(expectedStages);

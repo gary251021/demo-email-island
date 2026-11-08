@@ -47,9 +47,21 @@ db.exec(`
     body_text TEXT NOT NULL,
     received_at TEXT NOT NULL,
     read_at TEXT,
+    requires_reply INTEGER NOT NULL CHECK(requires_reply IN (0,1)),
+    archived_at TEXT,
     placement_revision INTEGER NOT NULL DEFAULT 0,
+    UNIQUE(owner_id, id),
     UNIQUE(owner_id, seed_key),
     FOREIGN KEY(owner_id, subcategory_id) REFERENCES subcategories(owner_id, id)
+  );
+  CREATE TABLE IF NOT EXISTS mail_replies (
+    id TEXT NOT NULL,
+    owner_id TEXT NOT NULL REFERENCES user(id),
+    mail_id TEXT NOT NULL,
+    body_text TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY(owner_id,id),
+    FOREIGN KEY(owner_id,mail_id) REFERENCES mails(owner_id,id)
   );
   CREATE INDEX IF NOT EXISTS mails_owner_category ON mails(owner_id, subcategory_id, received_at DESC, id);
 `);

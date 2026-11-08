@@ -11,13 +11,21 @@ import {
   darkStone,
   timber,
   darkTimber,
-  slate,
   cream,
   arch,
 } from "./building-primitives";
 
-type BuildingProps = { domainId: DomainId; unreadCount: number };
-export function Building({ domainId, unreadCount }: BuildingProps) {
+type BuildingProps = {
+  domainId: DomainId;
+  unreadCount: number;
+  hasPendingReply?: boolean;
+};
+export function Building({
+  domainId,
+  unreadCount,
+  hasPendingReply = false,
+}: BuildingProps) {
+  const roofColor = hasPendingReply ? "#b75f50" : "#577d9b";
   const tier = getBuildingTier(unreadCount);
   let structure;
   if (tier === null)
@@ -41,21 +49,26 @@ export function Building({ domainId, unreadCount }: BuildingProps) {
         ))}
       </group>
     );
-  else if (tier === 1) structure = <Starter domainId={domainId} />;
+  else if (tier === 1)
+    structure = <Starter domainId={domainId} roofColor={roofColor} />;
   else
     structure = (
       <>
-        <BuildingFamily domainId={domainId} tier={tier} />
+        <BuildingFamily domainId={domainId} tier={tier} roofColor={roofColor} />
         {tier >= 3 && domainId === "finance-bills" && (
           <mesh position={[0, 1.04, 0]} castShadow>
             <sphereGeometry
               args={[0.7, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]}
             />
-            <meshStandardMaterial color={slate} roughness={1} flatShading />
+            <meshStandardMaterial color={roofColor} roughness={1} flatShading />
           </mesh>
         )}
-        {tier >= 3 && <Expansion domainId={domainId} side={-1} />}
-        {tier === 4 && <Expansion domainId={domainId} side={1} />}
+        {tier >= 3 && (
+          <Expansion domainId={domainId} side={-1} roofColor={roofColor} />
+        )}
+        {tier === 4 && (
+          <Expansion domainId={domainId} side={1} roofColor={roofColor} />
+        )}
       </>
     );
   return (
@@ -66,7 +79,13 @@ export function Building({ domainId, unreadCount }: BuildingProps) {
   );
 }
 
-function Starter({ domainId }: { domainId: DomainId }) {
+function Starter({
+  domainId,
+  roofColor,
+}: {
+  domainId: DomainId;
+  roofColor: string;
+}) {
   if (domainId === "newsletters")
     return (
       <group>
@@ -76,7 +95,7 @@ function Starter({ domainId }: { domainId: DomainId }) {
         </mesh>
         <mesh position={[0, 1, 0]} castShadow>
           <coneGeometry args={[0.36, 0.38, 10]} />
-          <meshStandardMaterial color="#b4775c" roughness={1} flatShading />
+          <meshStandardMaterial color={roofColor} roughness={1} flatShading />
         </mesh>
         <group position={[0, 0.85, 0.3]} rotation={[0, 0, 0.35]}>
           {[0, Math.PI / 2].map((angle) => (
@@ -97,7 +116,7 @@ function Starter({ domainId }: { domainId: DomainId }) {
         <mesh position={[0, 0.6, 0]} castShadow>
           <coneGeometry args={[0.7, 0.8, 8, 1, true]} />
           <meshStandardMaterial
-            color="#c98470"
+            color={roofColor}
             roughness={1}
             side={2}
             flatShading
@@ -125,7 +144,7 @@ function Starter({ domainId }: { domainId: DomainId }) {
           scale={[0.43, 0.33, 0.85]}
           castShadow
         >
-          <meshStandardMaterial color={slate} roughness={1} />
+          <meshStandardMaterial color={roofColor} roughness={1} />
         </mesh>
         <Door at={[0, 0.28, 0.42]} />
       </group>
@@ -144,11 +163,7 @@ function Starter({ domainId }: { domainId: DomainId }) {
             />
           )),
         )}
-        <Roof
-          at={[0, 0.78, 0]}
-          size={[1.2, 0.55, 1.08]}
-          color={domainId === "internal-team" ? "#79927a" : "#937767"}
-        />
+        <Roof at={[0, 0.78, 0]} size={[1.2, 0.55, 1.08]} color={roofColor} />
         {domainId === "internal-team" ? (
           <group>
             <Block
@@ -201,7 +216,7 @@ function Starter({ domainId }: { domainId: DomainId }) {
           )),
         )}
         <Block at={[0, 0.65, 0]} size={[0.75, 0.07, 0.7]} color={timber} />
-        <Roof at={[0, 1.2, 0]} size={[0.9, 0.4, 0.85]} color="#a56c52" />
+        <Roof at={[0, 1.2, 0]} size={[0.9, 0.4, 0.85]} color={roofColor} />
         <Block
           at={[0, 0.95, 0.3]}
           size={[0.05, 0.65, 0.05]}
@@ -218,16 +233,24 @@ function Starter({ domainId }: { domainId: DomainId }) {
         color={flat ? "#d9be94" : stone}
       />
       {flat ? (
-        <Block at={[0, 0.66, 0]} size={[1.05, 0.12, 0.95]} color="#bfa98e" />
+        <Block at={[0, 0.66, 0]} size={[1.05, 0.12, 0.95]} color={roofColor} />
       ) : (
-        <Roof at={[0, 0.63, 0]} size={[1.05, 0.55, 0.95]} color={slate} />
+        <Roof at={[0, 0.63, 0]} size={[1.05, 0.55, 0.95]} color={roofColor} />
       )}
       <Door at={[0, 0.28, 0.39]} />
     </group>
   );
 }
 
-function Expansion({ domainId, side }: { domainId: DomainId; side: -1 | 1 }) {
+function Expansion({
+  domainId,
+  side,
+  roofColor,
+}: {
+  domainId: DomainId;
+  side: -1 | 1;
+  roofColor: string;
+}) {
   const flat = domainId === "low-priority";
   const team = domainId === "internal-team";
   const finance = domainId === "finance-bills";
@@ -236,28 +259,32 @@ function Expansion({ domainId, side }: { domainId: DomainId; side: -1 | 1 }) {
   if (team) wallColor = "#cba783";
   if (domainId === "system-alerts") wallColor = "#b27f64";
   if (domainId === "shopping-delivery") wallColor = "#ac8261";
-  let roofColor = slate;
-  if (team) roofColor = "#79927a";
-  if (domainId === "system-alerts") roofColor = "#a56c52";
-  if (domainId === "shopping-delivery") roofColor = "#937767";
   return (
     <group position={[side * 0.85, 0, -0.25]}>
       {domainId === "social-events" ? (
         <group scale={[0.65, 0.65, 0.65]}>
-          <BuildingFamily domainId="social-events" tier={2} />
+          <BuildingFamily
+            domainId="social-events"
+            tier={2}
+            roofColor={roofColor}
+          />
         </group>
       ) : (
         <>
           <Block at={[0, 0.38, 0]} size={[0.8, 0.68, 0.85]} color={wallColor} />
           {flat ? (
-            <Block at={[0, 0.78, 0]} size={[1, 0.14, 1.05]} color="#bfa98e" />
+            <Block at={[0, 0.78, 0]} size={[1, 0.14, 1.05]} color={roofColor} />
           ) : null}
           {finance && (
             <mesh position={[0, 0.75, 0]} castShadow>
               <sphereGeometry
                 args={[0.52, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2]}
               />
-              <meshStandardMaterial color={slate} roughness={1} flatShading />
+              <meshStandardMaterial
+                color={roofColor}
+                roughness={1}
+                flatShading
+              />
             </mesh>
           )}
           {!flat && !finance && domainId !== "newsletters" && (
@@ -277,7 +304,7 @@ function Expansion({ domainId, side }: { domainId: DomainId; side: -1 | 1 }) {
                 key={z}
                 at={[0, 0.75, z - 0.3]}
                 size={[0.95, 0.4, 0.32]}
-                color="#a56c52"
+                color={roofColor}
               />
             ))}
           {domainId === "system-alerts" && (
