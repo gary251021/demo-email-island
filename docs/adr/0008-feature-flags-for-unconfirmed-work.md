@@ -24,9 +24,7 @@ flag is no longer required for final delivery and should be removed when it no
 longer serves a rollout purpose. If the work is rejected, remove the flagged
 work instead of retaining a permanent dormant path.
 
-This default does not authorize a production operation. Human selection and
-approval of each production release remain governed by
-[ADR 0004](0004-production-release-branching.md).
+Production operations require the project's confirmed [release workflow](../agents/release-workflow.md) and human approval.
 
 ## Consequences
 

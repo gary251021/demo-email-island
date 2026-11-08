@@ -1,6 +1,8 @@
 # Production versions come from human-selected release branches
 
-Status: Accepted
+Temporary reference only. The fixed branch, version, build and release conventions below are not adopted for this project. See the workflow reconciliation TODO in `project.md`.
+
+Status: Not adopted here
 
 Date: 2026-08-06
 

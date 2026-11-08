@@ -2,6 +2,8 @@
 
 功能規格書：電郵島（Email Island）
 
+TODO（代理工作流程）：確認本專案的議題追蹤器與標籤、Git remote 與交付／發布分支、版本與 CI／部署指令、UI 預覽工具及產品／領域文件路徑。核對後，將 `docs/agents/_temp-*.md`、`docs/adr/_temp-0004-production-release-branching.md` 與 `.agents/skills/**/references/_temp-*.md` 的固定規則改成本專案設定，並同步調整 `.agents/skills/project-create-issue/`、`.agents/skills/project-deliver-issue/`、`.pi/pi-delivery/` 與 `.codex/` 的提示、腳本及設定；核對前不要啟用依賴這些固定值的流程。
+
 1. 產品概述（Product Overview）
 
 「電郵島」係一個將傳統沉悶嘅收件箱（Inbox）轉化為 3D 立體桌遊棋盤（Tabletop Board Game UI） 嘅生產力應用程式。透過借鏡桌遊《卡坦島》（Catan）嘅地形板塊、建築升級、道路連線同強盜機制，消除用家面對大量文字時嘅視覺疲勞，並精準解決「長文電子報被埋沒」同「跨專案電郵難以串聯」嘅痛點。
