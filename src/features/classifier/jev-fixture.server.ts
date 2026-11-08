@@ -188,7 +188,6 @@ function subcategoryName(subject: string) {
 }
 
 function criterionName(value: unknown) {
-  if (typeof value === "string") return value; // The prior SDK fixture contract used plain option text.
   return z
     .object({ name: z.string(), description: z.string().nullable() })
     .parse(value).name;

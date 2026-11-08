@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 // @vitest-environment node
 import { it, expect, afterAll, beforeAll } from "vitest";
 import { randomUUID } from "node:crypto";
@@ -25,7 +26,7 @@ const redisURL = process.env.EMAIL_ISLAND_REDIS_URL;
 const redisPort = new URL(redisURL).port;
 const redisData =
   process.env.EMAIL_ISLAND_REDIS_DATA ??
-  "/private/tmp/email-island-02-evidence/redis-data";
+  resolve(tmpdir(), "email-island-test-redis");
 const connection = redisConnection(true);
 const queue = new Queue(queueName, { connection });
 let worker: ReturnType<typeof spawn> | null = null;
@@ -129,10 +130,7 @@ it("rebuilds pending intents after Redis queue-data loss and never recomputes pe
 });
 
 it("keeps the Job Scheduler working after persistent Redis restarts", async () => {
-  // eslint-disable-next-line sonarjs/publicly-writable-directories -- Fixed isolated runtime supplied for acceptance.
-  const binary =
-    process.env.EMAIL_ISLAND_REDIS_BINARY ??
-    "/private/tmp/email-island-02-evidence/redis-8.10.3/src/redis-server";
+  const binary = process.env.EMAIL_ISLAND_REDIS_BINARY ?? "redis-server";
   startWorker();
   await expect
     .poll(async () => (await queue.getWorkers()).length)
@@ -142,7 +140,6 @@ it("keeps the Job Scheduler working after persistent Redis restarts", async () =
     redisPort,
     "shutdown",
   ]);
-  // eslint-disable-next-line sonarjs/publicly-writable-directories -- Same persistent isolated Redis directory before and after restart.
   execFileSync(binary, [
     "--port",
     redisPort,
@@ -159,9 +156,9 @@ it("keeps the Job Scheduler working after persistent Redis restarts", async () =
     "--daemonize",
     "yes",
     "--pidfile",
-    "/private/tmp/email-island-02-evidence/redis.pid",
+    resolve(redisData, "redis.pid"),
     "--logfile",
-    "/private/tmp/email-island-02-evidence/redis.log",
+    resolve(redisData, "redis.log"),
   ]);
   const owner = newOwner("請確認報價項目 · 排程恢復");
   // No dispatch call here. Only the persisted BullMQ scheduler can discover this intent.

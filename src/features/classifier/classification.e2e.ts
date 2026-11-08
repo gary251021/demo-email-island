@@ -1,3 +1,4 @@
+import { tmpdir } from "node:os";
 import { queueJobState } from "./classification.acceptance.server";
 /* eslint-disable sonarjs/publicly-writable-directories -- Isolated acceptance artifacts and Redis runtime live in the explicitly assigned temporary evidence directory. */
 import {
@@ -24,10 +25,8 @@ const redisPort = new URL(
 ).port;
 const redisData =
   process.env.EMAIL_ISLAND_REDIS_DATA ??
-  "/private/tmp/email-island-02-evidence/redis-data";
-const redisBinary =
-  process.env.EMAIL_ISLAND_REDIS_BINARY ??
-  "/private/tmp/email-island-02-evidence/redis-8.10.3/src/redis-server";
+  resolve(tmpdir(), "email-island-test-redis");
+const redisBinary = process.env.EMAIL_ISLAND_REDIS_BINARY ?? "redis-server";
 function redis(running: boolean) {
   // eslint-disable-next-line sonarjs/no-selector-parameter -- Mirrors the service lifecycle fixture.
   if (running)
@@ -47,9 +46,9 @@ function redis(running: boolean) {
       "--daemonize",
       "yes",
       "--pidfile",
-      "/private/tmp/email-island-02-evidence/redis.pid",
+      resolve(redisData, "redis.pid"),
       "--logfile",
-      "/private/tmp/email-island-02-evidence/redis.log",
+      resolve(redisData, "redis.log"),
     ]);
   else
     execFileSync(redisBinary.replace(/redis-server$/, "redis-cli"), [

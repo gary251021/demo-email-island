@@ -37,13 +37,28 @@ Jev 每步完整保存 choice、probabilities、confidence 與實際回應的 mo
 
 Jev fixture 只取代 provider HTTP 邊界；Start、Better Auth、SQLite、Redis 與 BullMQ 均為真實程序。
 
+測試服務使用獨立暫存目錄與明確的本機埠號，不需要 live Jev key。Redis server 與同目錄的 redis-cli 必須是 8.10.3。先設定自己的路徑：
+
 ```sh
-npm run jev:fixture
-npm run test -- --run
-EMAIL_ISLAND_E2E_PORT=4202 EMAIL_ISLAND_E2E_REPORT=/absolute/evidence/acceptance.json EMAIL_ISLAND_E2E_OUTPUT=/absolute/evidence/artifacts npm run test:e2e
+export EMAIL_ISLAND_TEST_RUNTIME="$(mktemp -d)"
+export EMAIL_ISLAND_REDIS_BINARY=/absolute/redis-8.10.3/src/redis-server
+export EMAIL_ISLAND_REDIS_URL=redis://127.0.0.1:6402
+export EMAIL_ISLAND_REDIS_DATA="$EMAIL_ISLAND_TEST_RUNTIME/redis"
+export TYPESAFE_BASE_URL=http://127.0.0.1:4302
+bash scripts/start-classifier-test-services.sh
 ```
 
-E2E fixture 自行啟停 web 與 worker；Redis 與 Jev fixture 須先啟動。E2E 的 Redis 重啟情境需要 `EMAIL_ISLAND_REDIS_BINARY` 指向 8.10.3 的 `redis-server`，相鄰目錄有 `redis-cli`。預設驗證目錄是交付 evidence 的隔離暫存目錄，正式 Redis 資料請使用自己的路徑。測試不可與另一個使用相同 provider fixture 的測試同時執行。
+啟動器檢查 `.node-version` 與 Redis 版本，建立 loopback Redis、AOF/everysec/noeviction 與獨立 Jev HTTP fixture，等待兩者 ready。PID 與日誌位於指定的 runtime/data 目錄。E2E 自行啟停真實 web/worker；Redis 重啟情境沿用相同 data、PID 與 log 路徑。未指定 Redis binary 時測試使用 PATH 的 `redis-server`，未指定 data 時使用系統暫存目錄，不依賴交付機器的 `/private/tmp`。
+
+Local 僅執行 issue 擁有及受影響的明確 spec 檔，unit 使用 `--changed <base-sha>` 或 Vitest related。完整 E2E 只在 PR 的 GitHub Actions `Lint and tests` 工作執行，須等實際 CI run 綠燈，不能用 local 結果代替。
+
+```sh
+EMAIL_ISLAND_E2E_PORT=4212 EMAIL_ISLAND_E2E_REPORT="$EMAIL_ISLAND_TEST_RUNTIME/results/acceptance.json" EMAIL_ISLAND_E2E_OUTPUT="$EMAIL_ISLAND_TEST_RUNTIME/results/artifacts" npm run test:e2e -- src/features/classifier/classification.e2e.ts
+npm test -- --run --changed 66fc6504d820dfe59414f81101d3f5e8df9a5ce0
+bash scripts/stop-classifier-test-services.sh
+```
+
+GitHub Actions 應在 `RUNNER_TEMP` 建立 runtime/data/results，從官方固定 8.10.3 source 與 checksum 建置 Redis，再呼叫同一啟動器。所有 unit/E2E 共用該 job 的隔離服務並循序執行，最後以 `always()` 清理。失敗 artifacts 只選取報告、畫面、錯誤摘要及服務日誌，不額外上傳 SQLite、live session/secret 儲存檔或 Redis data。分類測試不需要 live Jev key；獨立 image 工作不在此設定範圍。請勿讓不同 suite 同時重設同一 provider fixture 的 control/call history。
 
 ## 06 的讀取介面
 
