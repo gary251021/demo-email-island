@@ -1,0 +1,6 @@
+interface:
+  display_name: "Harness Finding to Gate"
+  short_description: "Turn run findings into gates, checkers or prompts"
+  default_prompt: "Use $harness-finding-to-gate to condense these review and session findings into lint, gate, checker or prompt changes."
+policy:
+  allow_implicit_invocation: true
