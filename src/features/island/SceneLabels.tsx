@@ -70,6 +70,11 @@ export function SceneLabels(props: SceneLabelsProps) {
       if (!element) continue;
       if (label.kind === "anchor") {
         const model = models.get(label.resourceId);
+        const actual = scene.getObjectByName(`building-${label.resourceId}`);
+        if (actual)
+          element.dataset.worldAnchor = JSON.stringify(
+            actual.getWorldPosition(new Vector3()).toArray(),
+          );
         if (model)
           element.dataset.modelBounds = JSON.stringify({
             x: model.x,

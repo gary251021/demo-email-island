@@ -41,9 +41,15 @@ export function BacklogEntry({
         </div>
       )}
       {category && (
-        <button className="island-label" onClick={onOpen}>
-          處理積壓
-        </button>
+        <div
+          className="backlog-manual-entry"
+          role="group"
+          aria-label={`${category.name}手動積壓處理`}
+        >
+          <button className="island-label" onClick={onOpen}>
+            處理積壓
+          </button>
+        </div>
       )}
     </div>
   );

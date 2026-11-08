@@ -30,8 +30,8 @@ test("AC1 clauses exact30 fortress and both scoped UI actions", async ({
     { sender: "B乙", count: 15, read: 0 },
   ]);
   const data = await overview(page);
-  const a = data.domains.find((d) => d.id === "core-projects")!;
-  const c = data.domains.find((d) => d.id === "finance-bills")!;
+  const a = data.domains.find((domain) => domain.id === "core-projects")!;
+  const c = data.domains.find((domain) => domain.id === "finance-bills")!;
   service(
     app,
     owner,
@@ -53,6 +53,56 @@ test("AC1 clauses exact30 fortress and both scoped UI actions", async ({
       })),
     ),
   );
+  const factsSchema = mailDetailSchema
+    .pick({ id: true, sender: true, subject: true })
+    .array();
+  const ordered = (value: unknown) =>
+    factsSchema.parse(value).toSorted((x, y) => x.id.localeCompare(y.id));
+  const expectedA = ordered(
+    records(
+      app,
+      `SELECT id,sender,subject FROM mails WHERE owner_id='${owner}' AND subcategory_id='${a.subcategories[0]!.id}'`,
+    ),
+  );
+  const expectedB = ordered(
+    records(
+      app,
+      `SELECT id,sender,subject FROM mails WHERE owner_id='${owner}' AND subcategory_id='${category.id}'`,
+    ),
+  );
+  expect(
+    expectedA
+      .map((mail) => mail.subject)
+      .toSorted((x, y) => x.localeCompare(y)),
+  ).toEqual(
+    Array.from(
+      { length: 15 },
+      (_, index) => `${a.subcategories[0]!.name} ${index}`,
+    ).toSorted((x, y) => x.localeCompare(y)),
+  );
+  expect(new Set(expectedA.map((mail) => mail.sender))).toEqual(
+    new Set([`來源 ${a.subcategories[0]!.name}`]),
+  );
+  expect(
+    expectedB
+      .map((mail) => mail.subject)
+      .toSorted((x, y) => x.localeCompare(y)),
+  ).toEqual(
+    ["B甲", "B乙"]
+      .flatMap((sender) =>
+        Array.from({ length: 15 }, (_, index) => `${sender} ${index}`),
+      )
+      .toSorted((x, y) => x.localeCompare(y)),
+  );
+  expect(new Set(expectedB.map((mail) => mail.sender))).toEqual(
+    new Set(["B甲", "B乙"]),
+  );
+  const all = ordered(
+    records(
+      app,
+      `SELECT id,sender,subject FROM mails WHERE owner_id='${owner}'`,
+    ),
+  );
   await page.goto(app.url + "/island");
   await expect(
     page.getByText("核心專案有積壓郵件", { exact: true }),
@@ -65,6 +115,22 @@ test("AC1 clauses exact30 fortress and both scoped UI actions", async ({
   await expect(
     page.getByText("共 15 封，未讀 15 封", { exact: true }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "批次封存", exact: true }).click();
+  const planA = await prepare(page, a.subcategories[0]!.id, "archive");
+  expect(ordered(planA.mails)).toEqual(expectedA);
+  await expect(
+    page.getByRole("dialog", { name: /積壓處理/ }).getByRole("checkbox"),
+  ).toHaveCount(15);
+  for (const mail of expectedA)
+    await expect(
+      page.getByRole("checkbox", { name: `${mail.subject} 未讀`, exact: true }),
+    ).toBeAttached();
+  const foreignA = new Set(
+    all
+      .filter((mail) => !expectedA.some((expected) => expected.id === mail.id))
+      .map((mail) => mail.id),
+  );
+  expect(planA.mails.filter((mail) => foreignA.has(mail.id))).toEqual([]);
   await page.goto(app.url + "/island");
   await page.getByRole("button", { name: /電子報，未讀 30 封.*Lv. 4/ }).click();
   await page.locator(`#subcategory-${category.id}`).click();
@@ -75,9 +141,21 @@ test("AC1 clauses exact30 fortress and both scoped UI actions", async ({
     page.getByText("共 30 封，未讀 30 封", { exact: true }),
   ).toBeVisible();
   await page.getByRole("button", { name: "批次封存", exact: true }).click();
+  const planB = await prepare(page, category.id, "archive");
+  expect(ordered(planB.mails)).toEqual(expectedB);
   await expect(
-    page.getByRole("dialog", { name: /積壓處理/ }),
-  ).not.toContainText("所選分類內容");
+    page.getByRole("dialog", { name: /積壓處理/ }).getByRole("checkbox"),
+  ).toHaveCount(30);
+  for (const mail of expectedB)
+    await expect(
+      page.getByRole("checkbox", { name: `${mail.subject} 未讀`, exact: true }),
+    ).toBeAttached();
+  const foreignB = new Set(
+    all
+      .filter((mail) => !expectedB.some((expected) => expected.id === mail.id))
+      .map((mail) => mail.id),
+  );
+  expect(planB.mails.filter((mail) => foreignB.has(mail.id))).toEqual([]);
   await page.goto(app.url + "/island?domain=finance-bills");
   await expect(
     page.getByRole("main", { name: "財務帳單板塊", exact: true }),
@@ -617,9 +695,9 @@ test("AC10 clauses same-name loser displays conflict and all losing IDs stay", a
   page,
   app,
   context,
-}) => {
+}, testInfo) => {
   const { owner, category } = await setup(page, app);
-  const plan = await prepare(page, category.id);
+  const planA = await prepare(page, category.id);
   await suggestions(page);
   await page.getByLabel("子島名稱 1", { exact: true }).fill("名稱競爭");
   await page
@@ -628,30 +706,94 @@ test("AC10 clauses same-name loser displays conflict and all losing IDs stay", a
   await page
     .getByRole("button", { name: "取消整組 其他來源", exact: true })
     .click();
+  service(app, owner, "import", {
+    key: "name-race-snapshot",
+    subcategoryId: category.id,
+    sender: "新來源",
+    subject: "未選新信",
+    bodyText: "不擴大任何確認範圍",
+    receivedAt: "2026-11-01T00:00:00.000Z",
+    requiresReply: false,
+  });
   const other = await context.newPage();
-  await other.goto(app.url);
-  const choice = selection(plan);
-  choice.groups = [{ ...choice.groups[1]!, name: "名稱競爭" }];
-  resultData(await commit(other, plan, choice));
-  const losing = plan.groups[0]!.mailIds;
+  await source(other, app, category.id);
+  const planB = await prepare(other, category.id);
+  expect(planB.planId).not.toBe(planA.planId);
+  expect(planB.revision).not.toBe(planA.revision);
+  await suggestions(other);
+  await other.getByLabel("子島名稱 2", { exact: true }).fill("名稱競爭");
+  await other
+    .getByRole("button", { name: "取消整組 設計來源", exact: true })
+    .click();
+  await other
+    .getByRole("button", { name: "取消整組 其他來源", exact: true })
+    .click();
+  const losing = planA.groups[0]!.mailIds;
+  const winning = planB.groups[1]!.mailIds;
+  expect(losing.filter((id) => winning.includes(id))).toEqual([]);
   const before = facts(app, owner);
-  const button = page.getByRole("button", { name: "確認分拆", exact: true });
-  if (await button.isEnabled()) await button.click();
-  await expect(page.getByRole("alert")).toContainText(/名稱已存在|不可重名/);
-  expect(facts(app, owner)).toEqual(before);
-  for (const id of losing)
-    expect(
-      records(
-        app,
-        `SELECT subcategory_id FROM mails WHERE owner_id='${owner}' AND id='${id}'`,
-      )[0]?.subcategory_id,
-    ).toBe(category.id);
-  expect(
-    records(
-      app,
-      `SELECT id FROM subcategories WHERE owner_id='${owner}' AND name='名稱競爭'`,
+  const held = new Map<string, () => void>();
+  const order: string[] = [];
+  for (const [target, id] of [
+    [page, planA.planId],
+    [other, planB.planId],
+  ] as const) {
+    await target.route("**/_serverFn/**", async (route) => {
+      const request = route.request();
+      if (
+        request.method() === "POST" &&
+        request.postData()?.includes(id) &&
+        request.postData()?.includes("selection")
+      ) {
+        order.push(`held:${id}`);
+        await new Promise<void>((resolve) => held.set(id, () => resolve()));
+        order.push(`continued:${id}`);
+      }
+      await route.continue();
+    });
+  }
+  await Promise.all([
+    page.getByRole("button", { name: "確認分拆", exact: true }).click(),
+    other.getByRole("button", { name: "確認分拆", exact: true }).click(),
+  ]);
+  await expect.poll(() => held.size).toBe(2);
+  held.get(planB.planId)!();
+  await expect(other.getByText(savedMessage, { exact: true })).toBeVisible();
+  held.get(planA.planId)!();
+  await expect(
+    page.getByText("名稱已存在，請修改名稱。", { exact: true }),
+  ).toBeVisible();
+  await testInfo.attach("same-name-real-rpc-order.json", {
+    body: JSON.stringify(
+      { planA: planA.planId, planB: planB.planId, order },
+      null,
+      2,
     ),
-  ).toHaveLength(1);
+    contentType: "application/json",
+  });
+  const after = facts(app, owner);
+  expect(
+    after.mails.filter((mail) => losing.includes(String(mail.id))),
+  ).toEqual(before.mails.filter((mail) => losing.includes(String(mail.id))));
+  expect(
+    after.overrides.filter((row) => losing.includes(String(row.mail_id))),
+  ).toEqual(
+    before.overrides.filter((row) => losing.includes(String(row.mail_id))),
+  );
+  const targets = records(
+    app,
+    `SELECT id FROM subcategories WHERE owner_id='${owner}' AND name='名稱競爭'`,
+  );
+  expect(targets).toHaveLength(1);
+  for (const id of losing)
+    expect(after.mails.find((mail) => mail.id === id)?.subcategory_id).toBe(
+      category.id,
+    );
+  for (const id of winning)
+    expect(after.mails.find((mail) => mail.id === id)?.subcategory_id).toBe(
+      targets[0]!.id,
+    );
+  expect(after.categories).toHaveLength(before.categories.length + 1);
 });
 test("AC11 clauses refresh failure keeps old board and retry sends no mutation", async ({
   page,
@@ -818,13 +960,41 @@ test("AC14 clauses keyboard confirmation foundations and model-label destination
   page,
   app,
 }) => {
-  const { category } = await setup(page, app, [
+  const { owner, category } = await setup(page, app, [
     { sender: "A", count: 3, read: 0 },
     { sender: "B", count: 3, read: 0 },
   ]);
+  const priorId = randomUUID();
+  app.sql(
+    `INSERT INTO subcategories(id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES('${priorId}','${owner}','prior-newsletter','newsletters','既有電子報',1,'seed',1)`,
+  );
+  await source(page, app, category.id);
+  await expect(
+    page.locator(".scene-label-position[data-world-anchor]"),
+  ).toHaveCount(2);
+  const beforeAnchors = await page
+    .locator(".scene-label-position[data-world-anchor]")
+    .evaluateAll((elements) =>
+      elements.map((element) => ({
+        id: element
+          .querySelector("[data-building]")!
+          .getAttribute("data-building"),
+        position: JSON.parse(element.getAttribute("data-world-anchor")!),
+      })),
+    );
+  expect(beforeAnchors).toHaveLength(2);
   const original = (await overview(page)).domains.find(
     (d) => d.id === "newsletters",
   )!.subcategories;
+  const otherOld = original.filter((entry) => entry.id !== category.id);
+  expect(otherOld.map((entry) => entry.id)).toEqual([priorId]);
+  expect(
+    beforeAnchors
+      .map((anchor) => anchor.id)
+      .toSorted((x, y) => String(x).localeCompare(String(y))),
+  ).toEqual(
+    original.map((entry) => entry.id).toSorted((x, y) => x.localeCompare(y)),
+  );
   await page
     .getByRole("button", { name: "處理積壓", exact: true })
     .last()
@@ -835,7 +1005,26 @@ test("AC14 clauses keyboard confirmation foundations and model-label destination
   await page.getByRole("button", { name: "確認分拆", exact: true }).click();
   await expect(page.getByText(savedMessage, { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "關閉積壓處理", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.locator(`#subcategory-${category.id}`)).toBeFocused();
+  const afterAnchors = await page
+    .locator(".scene-label-position[data-world-anchor]")
+    .evaluateAll((elements) =>
+      elements.map((element) => ({
+        id: element
+          .querySelector("[data-building]")!
+          .getAttribute("data-building"),
+        position: JSON.parse(element.getAttribute("data-world-anchor")!),
+      })),
+    );
+  expect(
+    afterAnchors.filter((anchor) =>
+      original.some((entry) => entry.id === anchor.id),
+    ),
+  ).toEqual(beforeAnchors);
+  expect(afterAnchors.find((anchor) => anchor.id === priorId)).toEqual(
+    beforeAnchors.find((anchor) => anchor.id === priorId),
+  );
   const domain = (await overview(page)).domains.find(
     (d) => d.id === "newsletters",
   )!;

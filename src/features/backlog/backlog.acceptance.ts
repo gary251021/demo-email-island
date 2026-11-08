@@ -45,6 +45,7 @@ export const planSchema = z.object({
     z.object({
       id: z.string(),
       subject: z.string(),
+      sender: z.string(),
       manual: z.boolean(),
       placementRevision: z.number().int().nonnegative(),
       readAt: z.string().nullable(),
@@ -175,9 +176,13 @@ export async function setup(
   return { owner, domain, category };
 }
 export async function card(page: Page) {
-  await page
-    .getByRole("button", { name: "處理積壓", exact: true })
-    .last()
-    .click();
+  const mailbox = page.getByRole("dialog", { name: /郵件$/ });
+  await expect(mailbox).toBeVisible();
+  const name = await mailbox.getByRole("heading", { level: 1 }).innerText();
+  const entry = page.getByRole("group", {
+    name: `${name}手動積壓處理`,
+    exact: true,
+  });
+  await entry.getByRole("button", { name: "處理積壓", exact: true }).click();
   await expect(page.getByRole("dialog", { name: /積壓處理/ })).toBeVisible();
 }

@@ -947,3 +947,6 @@ button.island-label:hover {
   z-index: -1;
   pointer-events: none;
 }
+.backlog-manual-entry {
+  display: flex;
+}
