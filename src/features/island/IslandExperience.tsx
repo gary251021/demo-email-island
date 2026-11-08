@@ -61,7 +61,11 @@ export function IslandExperience({
     if (query.error?.message === "UNAUTHENTICATED") leave();
   }, [query.error, leave]);
   useEffect(() => {
-    if (!selection.subcategory && previousSubcategory.current)
+    if (
+      !selection.subcategory &&
+      previousSubcategory.current &&
+      document.activeElement === document.body
+    )
       document
         .getElementById(`subcategory-${previousSubcategory.current}`)
         ?.focus();

@@ -5,7 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import type { RootState } from "@react-three/fiber";
 import { Vector3 } from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
-import { getBuildingTier } from "../building/buildingTier";
+import { getBuildingTier } from "../../lib/buildingTier";
 import { subcategoryPositions, tilePositions } from "./scene-layout";
 
 type Domain = Overview["domains"][number];

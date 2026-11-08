@@ -1,5 +1,5 @@
 import { statusSchema } from "../../lib/classification";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { db, transaction } from "../../lib/db.server";
 import {
   getClassificationInputs,
@@ -89,11 +89,29 @@ export function enqueueChangedMail(
 }
 export function classificationStatus(ownerId: string) {
   const works = ownerWorks(ownerId);
+  const revision = createHash("sha256")
+    .update(
+      JSON.stringify({
+        works: works
+          .toSorted((a, b) => a.workId.localeCompare(b.workId))
+          .map((work) => [
+            work.workId,
+            work.dispatchGeneration,
+            work.outcome,
+            work.resolved,
+          ]),
+        placements: getClassificationInputs(ownerId).map((mail) => [
+          mail.id,
+          mail.placementRevision,
+        ]),
+      }),
+    )
+    .digest("hex");
   if (works.some((work) => work.outcome === "pending"))
-    return { status: statusSchema.parse("pending") };
+    return { status: statusSchema.parse("pending"), revision };
   if (works.some((work) => work.outcome === "failed" && !work.resolved))
-    return { status: statusSchema.parse("complete with error") };
-  return { status: statusSchema.parse("completed") };
+    return { status: statusSchema.parse("complete with error"), revision };
+  return { status: statusSchema.parse("completed"), revision };
 }
 export function retryFailed(ownerId: string) {
   transaction(() => {

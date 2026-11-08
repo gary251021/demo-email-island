@@ -47,3 +47,24 @@ export const overviewSchema = z.object({
   ),
 });
 export type Overview = z.infer<typeof overviewSchema>;
+
+const timelineStageSchema = z.object({
+  title: z.string().min(1),
+  summary: z.string().min(1),
+  from: z.iso.datetime(),
+  to: z.iso.datetime(),
+});
+export const timelineSchema = z.object({
+  stages: z.tuple([
+    timelineStageSchema,
+    timelineStageSchema,
+    timelineStageSchema,
+  ]),
+});
+export type MailTimeline = z.infer<typeof timelineSchema>;
+export const mailListSchema = z.object({
+  mails: z.array(mailSummarySchema),
+  unreadCount: z.number().int().nonnegative(),
+  timeline: timelineSchema.nullable(),
+});
+export type MailList = z.infer<typeof mailListSchema>;

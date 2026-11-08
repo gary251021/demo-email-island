@@ -2,6 +2,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ListMailInput, MailInput } from "../../lib/mailbox";
 import { mailListQueryOptions } from "./mailbox.queries";
+import { TimelineSummary } from "./TimelineSummary";
 import { useMailReader } from "./useMailReader";
 
 type MailPanelProps = {
@@ -81,7 +82,7 @@ function MailList({
 >) {
   const list = useQuery(mailListQueryOptions(ownerKey, input));
   useUnauthenticated(list.error, onUnauthenticated);
-  if (list.isPending)
+  if (list.isPending || list.isFetching)
     return (
       <p className="panel-message" role="status">
         正在載入郵件…
@@ -89,30 +90,40 @@ function MailList({
     );
   if (list.isError)
     return <ReadError error={list.error} retry={() => void list.refetch()} />;
-  if (list.data.length === 0)
+  if (list.data.mails.length === 0)
     return <p className="panel-message">這裡還沒有郵件。</p>;
 
   return (
-    <ul className="mail-list" aria-label="郵件列表">
-      {list.data.map((mail) => (
-        <li key={mail.id}>
-          <button
-            type="button"
-            className="mail-row"
-            onClick={() => onOpenMail(mail.id)}
-          >
-            <span className="mail-row-topline">
-              <span className="mail-sender">{mail.sender}</span>
-              <time dateTime={mail.receivedAt}>
-                {formatDate(mail.receivedAt)}
-              </time>
-            </span>
-            <span className="mail-subject">{mail.subject}</span>
-            {mail.readAt === null && <span className="mail-unread">未讀</span>}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div
+      className="mail-list-content"
+      role="region"
+      aria-label="郵件內容"
+      tabIndex={0}
+    >
+      {list.data.timeline && <TimelineSummary timeline={list.data.timeline} />}
+      <ul className="mail-list" aria-label="郵件列表">
+        {list.data.mails.map((mail) => (
+          <li key={mail.id}>
+            <button
+              type="button"
+              className="mail-row"
+              onClick={() => onOpenMail(mail.id)}
+            >
+              <span className="mail-row-topline">
+                <span className="mail-sender">{mail.sender}</span>
+                <time dateTime={mail.receivedAt}>
+                  {formatDate(mail.receivedAt)}
+                </time>
+              </span>
+              <span className="mail-subject">{mail.subject}</span>
+              {mail.readAt === null && (
+                <span className="mail-unread">未讀</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

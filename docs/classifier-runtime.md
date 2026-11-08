@@ -58,7 +58,9 @@ npm test -- --run --changed 66fc6504d820dfe59414f81101d3f5e8df9a5ce0
 bash scripts/stop-classifier-test-services.sh
 ```
 
-GitHub Actions 應在 `RUNNER_TEMP` 建立 runtime/data/results，從 Redis 官方 GitHub `8.10.3` tag archive 與固定 SHA-256 `85ae62e175cc76f638015fa18cb384b549b6808a765425d9e9d47466f69532ea` 建置 Redis core。此 checksum 對應 GitHub source archive，不能配對 `download.redis.io` 的不同 release 封裝，再呼叫同一啟動器。所有 unit/E2E 共用該 job 的隔離服務並循序執行，最後以 `always()` 清理。失敗 artifacts 只選取報告、畫面、錯誤摘要及服務日誌，不額外上傳 SQLite、live session/secret 儲存檔或 Redis data。分類測試不需要 live Jev key；獨立 image 工作不在此設定範圍。請勿讓不同 suite 同時重設同一 provider fixture 的 control/call history。
+GitHub Actions 應在 `RUNNER_TEMP` 建立 runtime/data/results，從 Redis 官方 `download.redis.io/releases/redis-8.10.3.tar.gz` 與官方 redis-hashes 確認的 SHA-256 `edde778f6bdee7581e42fc139ca9e07e2822212092f7501f99989656e3629d02` 建置 Redis core，以單一 `make -C "$test_runtime/redis-8.10.3/src" -j2 redis-server redis-cli` graph 建置兩個 core target，再呼叫同一啟動器。所有 unit/E2E 共用該 job 的隔離服務並循序執行，最後以 `always()` 清理。失敗 artifacts 只選取報告、畫面、錯誤摘要及服務日誌，不額外上傳 SQLite、live session/secret 儲存檔或 Redis data。分類測試不需要 live Jev key；獨立 image 工作不在此設定範圍。請勿讓不同 suite 同時重設同一 provider fixture 的 control/call history。
+
+分類狀態回應另帶穩定 `revision`：只由該 owner 的 work ID／generation／outcome／resolved，以及 mailbox ID／placementRevision 計算。讀信時間不在其中。相同輪詢不會重取郵件列表；分類或人工位置改變才刷新，保留兩次輪詢間已完成的新工作，並避免取消列表載入及錯誤重試。
 
 ## 06 的讀取介面
 

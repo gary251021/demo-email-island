@@ -18,7 +18,7 @@ export function ClassificationStatus({ ownerKey }: { ownerKey: string }) {
     if (query.data?.status && query.data.status !== "pending") {
       void client.invalidateQueries({ queryKey: ["mailbox", ownerKey] });
     }
-  }, [query.data?.status, query.dataUpdatedAt, client, ownerKey]);
+  }, [query.data?.status, query.data?.revision, client, ownerKey]);
   const action = useMutation({
     mutationFn: (operation: "retry" | "refresh") =>
       (operation === "retry" ? retryClassification : refreshClassification)({

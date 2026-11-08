@@ -68,7 +68,10 @@ it("persists exact two-step provider evidence and reuses cache without leaking f
   const id = owner();
   transaction(() => enqueueChangedMail(id));
   await processOwner(id);
-  expect(classificationStatus(id)).toEqual({ status: "completed" });
+  expect(classificationStatus(id)).toEqual({
+    status: "completed",
+    revision: expect.stringMatching(/^[a-f0-9]{64}$/),
+  });
   const work = ownerWorks(id)[0]!;
   const answers = savedAnswers(work.workId)!;
   expect(work).toMatchObject({
@@ -257,4 +260,43 @@ it("mail import commits intent atomically, deduplicates content and protects ove
     ownerWorks(id).filter((work) => work.mailId === added.mailId),
   ).toHaveLength(1);
   expect(classificationStatus(id).status).toBe("pending");
+});
+
+it("refreshes changed owner work and placements without refreshing identical status polls or reads", async () => {
+  const id = owner();
+  transaction(() => enqueueChangedMail(id));
+  await processOwner(id);
+  const completed = classificationStatus(id);
+  expect(classificationStatus(id)).toEqual(completed);
+  const mail = getClassificationInputs(id)[0]!;
+  const domain = listClassificationCandidates(id).find((entry) =>
+    entry.subcategories.some((category) => category.id === mail.subcategoryId),
+  )!;
+  saveMailRead(id, {
+    domainId: domain.id,
+    subcategoryId: mail.subcategoryId,
+    mailId: mail.id,
+  });
+  expect(classificationStatus(id)).toEqual(completed);
+  const other = owner();
+  transaction(() => enqueueChangedMail(other));
+  await processOwner(other);
+  expect(classificationStatus(id)).toEqual(completed);
+  importClassifiedMail(id, {
+    key: "fast-import",
+    subcategoryId: mail.subcategoryId,
+    sender: mail.sender,
+    subject: "請確認報價項目 · 新信",
+    bodyText: "new content",
+    receivedAt: "2026-11-01T00:00:00.000Z",
+  });
+  await processOwner(id);
+  const fastCompleted = classificationStatus(id);
+  expect(fastCompleted.status).toBe("completed");
+  expect(fastCompleted.revision).not.toBe(completed.revision);
+  setCategory(id, mail.id, mail.subcategoryId);
+  const firstManual = classificationStatus(id);
+  expect(firstManual.revision).not.toBe(fastCompleted.revision);
+  setCategory(id, mail.id, mail.subcategoryId);
+  expect(classificationStatus(id).revision).not.toBe(firstManual.revision);
 });

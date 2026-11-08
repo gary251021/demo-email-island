@@ -6,7 +6,8 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { once } from "node:events";
-import { mailSummarySchema, overviewSchema } from "../../lib/mailbox";
+import { stripVTControlCharacters } from "node:util";
+import { mailListSchema, overviewSchema } from "../../lib/mailbox";
 import { identitySchema } from "../../lib/session";
 
 const transportSource = `import {getIdentity} from '/src/features/session/session.functions.ts';
@@ -77,9 +78,9 @@ export async function q4(page: Page) {
   expect(subcategory).toBeDefined();
   if (!subcategory) throw new Error("Missing Q4 報價");
   const input = { domainId: "core-projects", subcategoryId: subcategory.id };
-  const mails = mailSummarySchema
-    .array()
-    .parse(resultData(await rpc(page, "listMail", input)));
+  const { mails } = mailListSchema.parse(
+    resultData(await rpc(page, "listMail", input)),
+  );
   const mail = mails.find((entry) => entry.subject === "請確認報價項目");
   if (!mail) throw new Error("Missing 請確認報價項目");
   return {
@@ -177,7 +178,9 @@ static now(){return now();}
     const url = `http://127.0.0.1:${port}`;
     let output = "";
     let ruleVersion = "1";
+    let startupOutput = "";
     const launch = () => {
+      startupOutput = "";
       const child = spawn(
         process.execPath,
         [
@@ -210,10 +213,12 @@ static now(){return now();}
       );
       child.stdout.on("data", (data: Buffer) => {
         output += data.toString();
+        startupOutput += data.toString();
         writeFileSync(join(directory, "server.log"), output);
       });
       child.stderr.on("data", (data: Buffer) => {
         output += data.toString();
+        startupOutput += data.toString();
         writeFileSync(join(directory, "server.log"), output);
       });
       return child;
@@ -270,6 +275,12 @@ static now(){return now();}
       await expect
         .poll(
           async () => {
+            if (child.exitCode !== null || child.signalCode !== null)
+              throw new Error(
+                `Local application exited before ready: ${startupOutput}`,
+              );
+            if (!stripVTControlCharacters(startupOutput).includes(url))
+              return 0;
             try {
               return (await fetch(url)).status;
             } catch {

@@ -33,6 +33,7 @@ let held: {
   resolve: () => void;
 }[] = [];
 const subjectDomains: [RegExp, string][] = [
+  [/^(需求確認|方案修訂|交付確認) · \d+$/, "finance-bills"],
   [/報價|設計/, "core-projects"],
   [/團隊/, "internal-team"],
   [/文章|訂閱/, "newsletters"],
