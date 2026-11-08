@@ -1,7 +1,7 @@
 # 02 — Prepare context and dispatch
 
-The main coordinator gathers the issue's complete `For Agent` contract and
-accepted comments once. Resolve applicable guidance, shared interfaces and
+The main coordinator gathers the issue's `Verification (E2E)` criteria, its
+complete `For Agent` contract and accepted comments once. Resolve applicable guidance, shared interfaces and
 ownership needed by each ticket before its dispatch. Define acceptance scenarios
 and their test owner under [acceptance testing](../../../../docs/agents/acceptance-testing.md#acceptance-first-sequence).
 Dispatch each ready ticket while preparing independent tickets: a ready server
@@ -27,7 +27,7 @@ not native resumable children.
 ## Existing UI references
 
 For UI work, read the issue's design references, including references outside `For Agent`, and the available preview, component, style, and review sources. Use the preview environment configured for this repository. If none exists, report the visual evidence gap.
-Inspect applicable rendered states, controls, and interactions before defining UI test expectations and dispatching UI work. Carry source paths, requirements, observed states, and any available preview URLs or state identifiers in the packet's `guidance` and `verification` fields. Reuse the supplied
+Inspect applicable rendered states, controls, and interactions before defining UI test expectations and dispatching UI work. Carry source paths, requirements, observed states, and any available preview URLs or state identifiers in the packet's `guidance` and `verification` fields. List every applicable reference image with the application state, viewport and camera it corresponds to, so implementers can self-check and the Spec reviewer can score it under [visual scoring](visual-scoring.md). Reuse the supplied
 specification. Keep the distinction between visual/interaction references and
 the issue's authoritative backend behavior contract.
 

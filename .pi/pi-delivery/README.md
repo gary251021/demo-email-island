@@ -8,11 +8,9 @@ The project extension `.pi/extensions/hooks.ts` loads in ordinary Pi sessions. T
 
 | Pi event | Existing script | Effect |
 | --- | --- | --- |
-| `input` / `before_agent_start` (user prompts) | `require-harness-managed-edit-approval.py --capture-approval` | Record exact protected-edit approval. |
-| `tool_call` (`edit`, `write`, `apply_patch`) | `require-harness-managed-edit-approval.py` | Deny unapproved protected tooling edits. |
 | `tool_call` (`bash`) | `enforce-gitlab-guardrails.py`, `enforce-issue-integration.py` | Deny invalid GitLab requests and integration-branch pushes. |
 | `tool_call` (`subagent`) | `enforce-issue-integration.py` | Check native task launch and reviewer isolation. Dynamic scripted workflows cannot be inspected in advance and are refused; use direct/parallel task payloads. |
-| `tool_result` (`bash`) | `workflow-state.mjs --hook` | Add clarification context to the tool result. |
+| `tool_result` (`bash`) | `workflow-state.mjs --hook` | Add the propose-and-react reminder to the tool result. |
 | `tool_result` (edits) | `request-ponytail-review.mjs --mark`, `check-overdefensive.mjs --mark` and `--document` (markdown → overdefensive-review document variant), `checkAgentsMdSize.mjs --hook`, `lint-changed-file.mjs`, impeccable `hook.mjs` | Mark edited paths and show budget/lint/UI feedback. |
 | `agent_before_settle` | `lint-changed-file.mjs --stop`, `check-overdefensive.mjs`, impeccable `hook.mjs`, `request-ponytail-review.mjs`; delivery graph | Inject one more turn for lint/review feedback or an unfinished delivery's next step. A graph revision is reminded once to prevent an idle loop. |
 

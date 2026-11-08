@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const PROMPT =
-  "Use the grilling skill for clarification. Read its SKILL.md and announce its use before asking questions. Follow its question rounds and wait for the user's answers and shared-understanding confirmation before resuming dependent work.";
+  "Propose, don't interview: present a concrete revision with gaps filled by defaults marked (proposed), ask a direct question only where no reasonable default exists, and wait for the user to accept or correct it before resuming dependent work.";
 const scope = fileURLToPath(new URL("..", import.meta.url));
 
 function statePath(sessionId) {
@@ -41,10 +41,10 @@ function setState(path, state, substate) {
     );
   }
   if (
-    !["normal", "need_clarification", "awaiting_approval"].includes(substate)
+    !["normal", "awaiting_feedback", "awaiting_approval"].includes(substate)
   ) {
     throw new Error(
-      "Substate must be normal, need_clarification or awaiting_approval.",
+      "Substate must be normal, awaiting_feedback or awaiting_approval.",
     );
   }
   const previous = readState(path);
@@ -53,7 +53,7 @@ function setState(path, state, substate) {
   const next = {
     state,
     substate,
-    pendingClarification: substate === "need_clarification",
+    pendingFeedback: substate === "awaiting_feedback",
   };
   saveState(path, next);
   return next;
@@ -61,8 +61,8 @@ function setState(path, state, substate) {
 
 function listen(path) {
   const current = readState(path);
-  if (!current?.pendingClarification) return null;
-  saveState(path, { ...current, pendingClarification: false });
+  if (!current?.pendingFeedback) return null;
+  saveState(path, { ...current, pendingFeedback: false });
   return {
     systemMessage: `Workflow: ${current.state} / ${current.substate}`,
     hookSpecificOutput: {
@@ -79,17 +79,17 @@ function run() {
     try {
       setState(path, "investigation", "normal");
       assert.equal(listen(path), null);
-      setState(path, "investigation", "need_clarification");
+      setState(path, "investigation", "awaiting_feedback");
       assert.equal(listen(path).hookSpecificOutput.additionalContext, PROMPT);
       assert.equal(listen(path), null);
-      setState(path, "investigation", "need_clarification");
+      setState(path, "investigation", "awaiting_feedback");
       assert.equal(listen(path), null);
-      setState(path, "alignment", "normal");
-      setState(path, "alignment", "need_clarification");
+      setState(path, "design", "normal");
+      setState(path, "design", "awaiting_feedback");
       assert.equal(listen(path).hookSpecificOutput.additionalContext, PROMPT);
       setState(path, "preview", "awaiting_approval");
       assert.equal(listen(path), null);
-      assert.throws(() => setState(path, "preview", "need_clarifaication"));
+      assert.throws(() => setState(path, "preview", "awaiting_feedbak"));
       console.log("Workflow state self-check passed.");
     } finally {
       rmSync(path, { force: true });

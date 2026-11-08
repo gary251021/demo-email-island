@@ -18,21 +18,20 @@ function git(cwd, ...args) {
 
 function repository(withHarness) {
   const cwd = mkdtempSync(join(tmpdir(), "prepare-issue-branches-"));
-  git(cwd, "init", "-b", "main");
+  git(cwd, "init", "-b", "demo");
   git(cwd, "config", "user.email", "test@example.com");
   git(cwd, "config", "user.name", "Test");
   writeFileSync(join(cwd, "base.txt"), "base\n");
   git(cwd, "add", "base.txt");
   git(cwd, "commit", "-m", "base");
   const base = git(cwd, "rev-parse", "HEAD");
-  git(cwd, "tag", "v1.0.0");
 
   if (withHarness) {
     git(cwd, "switch", "-c", "feature/harness");
     writeFileSync(join(cwd, "harness.txt"), "harness\n");
     git(cwd, "add", "harness.txt");
     git(cwd, "commit", "-m", "harness");
-    git(cwd, "switch", "main");
+    git(cwd, "switch", "demo");
   }
 
   return { cwd, base };
@@ -43,7 +42,6 @@ function options() {
     issue: "42",
     type: "fix",
     slug: "example",
-    productionTag: "v1.0.0",
   };
 }
 
@@ -53,7 +51,7 @@ function dependency(cwd) {
   git(cwd, "add", "dependency.txt");
   git(cwd, "commit", "-m", "dependency");
   const sha = git(cwd, "rev-parse", "HEAD");
-  git(cwd, "switch", "main");
+  git(cwd, "switch", "demo");
   return { branch: "fix/21-dependency", sha };
 }
 
@@ -62,7 +60,8 @@ test("prepares only the feature branch without importing harness commits", () =>
   const result = prepareIssueBranches(options(), cwd);
   assert.equal(result.strategy, "direct");
   assert.equal(result.feature, "fix/42-example");
-  assert.equal(result.productionBase, base);
+  assert.equal(result.baseBranch, "demo");
+  assert.equal(result.baseRevision, base);
   assert.equal(git(cwd, "branch", "--show-current"), result.feature);
   assert.equal(git(cwd, "rev-parse", "HEAD"), base);
   assert.equal(git(cwd, "for-each-ref", "--format=%(refname)", "refs/heads/local/int/"), "");
@@ -76,14 +75,28 @@ test("prepares direct feature work without a local harness", () => {
   assert.equal(git(cwd, "branch", "--show-current"), result.feature);
 });
 
-test("stops when the production tag does not resolve", () => {
-  const { cwd } = repository(true);
+test("branches from the latest demo tip", () => {
+  const { cwd } = repository(false);
+  writeFileSync(join(cwd, "later.txt"), "later\n");
+  git(cwd, "add", "later.txt");
+  git(cwd, "commit", "-m", "later");
+  const latest = git(cwd, "rev-parse", "HEAD");
+  git(cwd, "switch", "--detach", "HEAD~1");
+
+  const result = prepareIssueBranches(options(), cwd);
+  assert.equal(result.baseRevision, latest);
+  assert.equal(git(cwd, "rev-parse", "HEAD"), latest);
+});
+
+test("stops when the demo branch does not exist", () => {
+  const { cwd } = repository(false);
+  git(cwd, "branch", "-m", "demo", "other");
 
   assert.throws(
-    () => prepareIssueBranches({ ...options(), productionTag: "v1.0.1" }, cwd),
-    /production tag must resolve to a commit/,
+    () => prepareIssueBranches(options(), cwd),
+    /local demo branch must exist/,
   );
-  assert.equal(git(cwd, "branch", "--show-current"), "main");
+  assert.equal(git(cwd, "branch", "--show-current"), "other");
   assert.throws(() => git(cwd, "rev-parse", "fix/42-example"));
 });
 
@@ -101,8 +114,6 @@ test("CLI prepares from an ordered dependency", () => {
         "fix",
         "--slug",
         "example",
-        "--production-tag",
-        "v1.0.0",
         "--dependency",
         `${required.branch}:${required.sha}`,
       ],
@@ -134,5 +145,5 @@ test("rejects a required SHA outside its dependency branch", () => {
       ),
     /is not on feature\/harness/,
   );
-  assert.equal(git(cwd, "branch", "--show-current"), "main");
+  assert.equal(git(cwd, "branch", "--show-current"), "demo");
 });

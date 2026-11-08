@@ -14,7 +14,8 @@
     "format": "prettier --write src/",
     "harness-signal": "bash scripts/harnessSignal.sh",
     "sync:skills": "node .agents/scripts/syncSkills.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "format:check": "prettier --check src/"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -49,7 +50,9 @@
     "globals": "^17.14.0",
     "jsdom": "^30.1.3",
     "knip": "^6.44.1",
+    "playwright": "^1.65.0",
     "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4.3.4",
     "tsx": "^4.23.15",
     "typescript": "~6.0.3",

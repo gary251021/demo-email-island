@@ -14,7 +14,6 @@ import { loadProfile } from "./resources.ts";
 
 const repo = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const scripts = {
-  approval: ".codex/hooks/require-harness-managed-edit-approval.py",
   gitlab: ".codex/hooks/enforce-gitlab-guardrails.py",
   integration: ".codex/hooks/enforce-issue-integration.py",
   workflow: ".codex/hooks/workflow-state.mjs",
@@ -64,8 +63,7 @@ export function lastHookDecision(runDir: string): string | undefined {
 /** Translate one Codex hook invocation. Script exit failures fail closed, rather than silently dropping a guardrail. */
 export function runHook(script: HookScript, event: Record<string, unknown>): HookDecision {
   const file = resolve(repo, scripts[script]);
-  const args = script === "approval" && event.hook_event_name === "UserPromptSubmit" ? ["--capture-approval"]
-    : script === "workflow" ? ["--hook"] : script === "overdefensiveDocs" ? ["--document"] : (script === "ponytail" || script === "overdefensive") && event.hook_event_name === "PostToolUse" ? ["--mark"]
+  const args = script === "workflow" ? ["--hook"] : script === "overdefensiveDocs" ? ["--document"] : (script === "ponytail" || script === "overdefensive") && event.hook_event_name === "PostToolUse" ? ["--mark"]
     : script === "budget" ? ["--hook"] : script === "lint" && event.hook_event_name === "Stop" ? ["--stop"] : [];
   const runner = file.endsWith(".py") ? "python3" : process.execPath;
   const output = spawnSync(runner, [file, ...args], {
@@ -73,7 +71,7 @@ export function runHook(script: HookScript, event: Record<string, unknown>): Hoo
     timeout: script === "lint" || (script === "impeccable" && event.hook_event_name === "Stop") ? 30_000
       : script === "overdefensive" && event.hook_event_name === "Stop" ? 15_000
       : script === "integration" || script === "gitlab" ? 10_000
-      : script === "approval" || script === "workflow" ? 3_000 : 5_000,
+      : script === "workflow" ? 3_000 : 5_000,
     env: { ...process.env, CODEX_SESSION_ID: String(event.session_id) },
   });
   if (output.error || output.status !== 0)
@@ -138,7 +136,6 @@ export default function registerHooks(pi: ExtensionAPI): void {
     turn = randomUUID();
     stopActive = false;
     rawPrompt = event.text;
-    invoke("approval", { ...base(ctx, "UserPromptSubmit"), prompt: event.text }, ctx, "input");
   });
   pi.on("before_agent_start", (event, ctx) => {
     if (event.messageType !== "user" || !event.prompt) return;
@@ -146,13 +143,11 @@ export default function registerHooks(pi: ExtensionAPI): void {
     // sendUserMessage (including /deliver) can bypass the raw input event.
     turn = randomUUID();
     stopActive = false;
-    invoke("approval", { ...base(ctx, "UserPromptSubmit"), prompt: event.prompt }, ctx, "input");
   });
   pi.on("tool_call", (event, ctx) => {
     const mapped = codexInput(event.toolName, event.input);
     const payload = { ...base(ctx, "PreToolUse"), ...mapped, delivery_active: !!deliveryDir(ctx) };
-    const scriptsToRun: HookScript[] = editTools.has(event.toolName) ? ["approval"]
-      : event.toolName === "bash" ? ["gitlab", "integration"]
+    const scriptsToRun: HookScript[] = event.toolName === "bash" ? ["gitlab", "integration"]
       : event.toolName === "subagent" ? ["integration"] : [];
     for (const script of scriptsToRun) {
       const decision = invoke(script, payload, ctx, event.toolName);

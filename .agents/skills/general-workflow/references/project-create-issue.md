@@ -1,7 +1,8 @@
 # Create an issue
 
-Use this route only when the user explicitly asks to create, file, open, or
-publish exactly one new tracked issue.
+Use this route only when the user explicitly asks to create, file, open or
+publish exactly one new tracked issue, or to deepen or detail one existing ticket
+(for example, one produced by `to-tickets`) into an implementation-ready issue.
 
 Read the repository `AGENTS.md` and locate its configured issue-creation
 workflow. Read that project-specific skill completely and follow it. It owns

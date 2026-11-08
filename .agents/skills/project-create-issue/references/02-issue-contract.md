@@ -1,183 +1,187 @@
 # Issue Contract
 
-Apply the user-facing generation rule in `AGENTS.md` and draft one issue in the user's requested language.
-Use the shortest body that preserves intent, affected actor and surface,
-verified current behavior, expected result, scope, domain meaning, dependencies
-and testable completion. Include investigation evidence only when it prevents a
-plausible wrong interpretation. Repository guidance and inspection supply
-routine engineering rules, locations, helpers and commands; include only
-issue-specific exceptions or proof requirements.
+Apply the user-facing generation rule in `AGENTS.md` and draft one issue in the
+user's requested language. Every issue has exactly three required sections, in
+this order:
 
-Classify the issue by its primary responsibility. Use a branch type only when the repository's [branching policy](../../project-deliver-issue/references/branching-strategy.md#feature-branch) is configured, and keep the chosen value consistent in the issue and delivery evidence.
+1. **For Human** — a plain-language summary of at most 200 words.
+2. **Verification (E2E)** — end-to-end acceptance criteria with stable IDs,
+   each implemented as an automated test.
+3. **For Agent** — the expected code architecture, collapsed.
 
-When the cause or remedy remains unknown, retain the investigation question in
-alignment. Investigation is not an additional classification candidate.
+When deepening a ticket, the issue replaces that ticket file in place: keep its
+`Status:`, `Progress:` and `Blocked by:` lines and `## Comments`. The ticket's
+"What to build" becomes the source for `For Human`, and its acceptance criteria
+become `Verification (E2E)` items, unchanged in meaning unless the user corrected
+them.
 
 Include only reachable edge cases that change business meaning, integrity,
-compatibility or acceptance. Recommend later specification only when
-implementation would otherwise invent a product, API, schema, authorization,
-migration or cross-module contract.
+compatibility or acceptance. Repository guidance supplies routine engineering
+rules; include only issue-specific exceptions. Classify the issue by its primary
+responsibility. Use a branch type only when the repository's
+[branching policy](../../project-deliver-issue/references/branching-strategy.md#feature-branch)
+is configured.
 
-## Title and delivery
+## Template
 
-Prefix the title with the most specific owning scope, or two scopes when the
-issue is genuinely cross-cutting:
+```markdown
+# <Scope>: <Title>
 
-```yaml
-scope_list:
-  # Select scopes from the product vocabulary confirmed for this project.
-  - General
-  - UI
-  - UX
-  - Accessibility
-  - Localization
-  - Performance
-  - Security
-  - Privacy
-  - Data
-  - API
-  - Documentation
-  - Testing
-  - Developer Experience
-  - Dependency
-  - Infrastructure
-```
-
-Resolve delivery fields through the [delivery policy](../../../../docs/agents/issue-delivery-policy.md). Include an actual base ref/SHA, target and dependency revisions only when confirmed; keep speculative branch names out of the published issue. The source SHA identifies the agreed design snapshot.
+Status: <triage value>
+Progress: open
+Blocked by: <NN, NN or "None">
 
 ## For Human
 
-Write for a domain-familiar reviewer who does not inspect code. The section must
-let that reader predict the default result and each relevant action from visible
-labels, representative examples and missing/empty states. Explain engineering
-choices only through practical effects the reviewer must judge. Put implementation
-contracts in `For Agent` and retain validation records internally. Resolve open
-choices during alignment before drafting them as agreed behavior.
+<≤200 words. What the user can do after this issue and what they will see,
+with one representative example. One or two sentences on how it is built, in
+plain words (for example, "Mail is stored per demo user in a local SQLite
+database"). What is deliberately left to later tickets.>
 
-Apply the user-facing selection rule in `AGENTS.md` in a final standalone read of
-`For Human`: keep only information the domain-familiar reviewer needs to judge or
-act. Include a role, permission, timezone or input constraint when it changes a
-result or explains a consequential exception; otherwise leave that shared
-technical contract to `For Agent`. Return to alignment when the pass exposes an
-unresolved product choice.
+## Verification (E2E)
 
-**Human description:** State the capability, available actions, and consequences
-the user needs to understand. When an approved interactive preview demonstrates
-layout and controls, link it instead of repeating its details. Retain consequential
-behaviour that interaction alone cannot reveal.
+- **AC-1 <short name>**
+  - **Given:** <Starting state and representative data.>
+  - **When:** <User actions in the browser.>
+  - **Then:** <What the user observes.>
+- **AC-2 …**
 
-Describe background behaviour only as a user-facing guarantee—for example,
-“Failed sends are retried.” Put handling, algorithms, timing policies, and recovery
-mechanics in `For Agent`.
-
-**Human verification:** Use short journeys stating an action and observable
-expected result. Cover the main workflow and consequential exceptions. Identify
-which checks use the preview and which require the integrated application. Put
-payload, database, and implementation checks in `For Agent`.
-
-**Consistency:** Human guarantees, agent acceptance criteria, and the approved
-preview must agree. Distinguish requested behaviour from verified existing
-behaviour; resolve conflicting requirements rather than retaining contradictory
-instructions.
-
-Use this structure as needed:
-
-```markdown
-## For Human
-
-<Problem and result the user will see or achieve. Include placement, defaults,
-visible labels, actions and representative outcomes.>
-
-### <Scenario or design question>
-
-<Agreed behavior, examples, useful diagrams, and inspected proposal screenshots.>
-
-### Delivery relationship
-
-<Only when another issue supplies required behavior:>
-
-1. Confirmed base: `<ref and full SHA>`
-2. Coupled dependency: `<issue and confirmed revision>`
-3. This issue: `<issue and feature branch, if configured>`
-4. Change-request target: `<confirmed target, if configured>`
-
-### How to verify
-
-- <Route or output, representative data condition, action and visible result.>
-```
-
-For explicit separate delivery, identify the dependency and confirm its review target and retargeting rule with the project's delivery policy before drafting them as a plan. Include
-negative statements when they affect the reader's decision. For an
-internal-only issue, describe an observable maintainer workflow or compatibility
-outcome.
-
-## For Agent
-
-Make this section sufficient for implementation without the conversation or
-`For Human`. Agreed responsibilities, contracts and accepted exceptions constrain
-implementation; candidate filenames and private details remain illustrative.
-Changing an agreed boundary returns to alignment.
-
-Wrap the section in a collapsed native HTML details block and omit optional
-sections that add no task-specific information:
-
-```markdown
 <details>
 <summary>For Agent</summary>
 
 ### Objective
 
-<One-sentence desired behavior change.>
+<One sentence.>
 
-### Acceptance criteria
+### Code architecture
 
-#### <Phase or scenario>
+Source ref/SHA: `<ref>` `<full SHA>`
 
-- **Given:** <Concrete precondition.>
-- **When:** <Endpoint, method or UI action.>
-- **Then:** <Observable result.>
+#### Approach
 
-### Essential context and constraints
+<How the slice is built end to end and why.>
 
-<Unique scope, verified domain facts, assumptions, exceptions and rationale.>
+#### Libraries
 
-### Agreed design
+| Package | Version | Owns | Rejected alternative |
+| ------- | ------- | ---- | -------------------- |
 
-<Source ref/SHA; agreed responsibilities, owners and symbols; reuse and
-dependency decisions; accepted exceptions and revalidation conditions.>
+#### Modules and layers
 
-### Verification
+| Module | Routing | UI view | UI model | Service | Data access | Integration |
+| ------ | ------- | ------- | -------- | ------- | ----------- | ----------- |
 
-<Only special proof requirements specific to this issue.>
+<Per module: one-line capability and public interface. Then the dependency
+direction between modules. Shared contracts used across modules. Follow
+[architecture axes](architecture-layers.md).>
 
-### Dependencies
+#### Data and contracts
 
-1. `#<issue>`
-   - Feature branch: `<branch>`
-   - Required SHA: `<full SHA, when available>`
-   - Delivery override: `separate` <only when explicitly chosen>
+<Persisted entities, shared schemas, server function/API signatures and key
+types as short snippets.>
 
-### Delivery
+#### Data flow
 
-<Required delivery fields above.>
+<Primary path from user action to persistence and back; where validation,
+authorization and caching happen.>
+
+#### Prefactoring
+
+<Changes that land first.>
+
+#### Foundations for later tickets
+
+<Seams later tickets extend; what this slice leaves out for them.>
+
+#### Testing seams
+
+<Each AC → its automated E2E test name and file; seed data and which external
+boundaries are faked; any focused unit or integration checks.>
+
+### Constraints and exceptions
+
+<Verified domain facts, assumptions, accepted exceptions and revalidation
+conditions not covered above.>
+
+### Dependencies and delivery
+
+<Blocking issues with branch/SHA when available; delivery fields from the
+delivery policy, only when confirmed.>
 
 </details>
+
+## Comments
 ```
 
-When code-design proof is required, include only checked excerpts that establish
-interfaces, ownership and caller/dependency direction; keep full diffs and logs
-internal. Require revalidation when the implementation base changes a relevant
-owner, caller, contract or harness rule. For UI changes, describe the selected
-appearance and interaction contract in text; screenshots supplement it.
+Omit `Code architecture` subsections the slice does not touch, and `Constraints
+and exceptions` or `Dependencies and delivery` when empty. Never omit the three
+required sections.
 
-State whether adjacent projects are implementation scope, reference-only or
-dependencies, and whether persisted fields change. The human delivery path and
-agent dependency evidence must agree.
+## For Human
+
+Write for a domain-familiar reader who does not inspect code. Count the words
+(for CJK text, count characters ÷ 2) and keep it at or under 200. No file paths,
+package names, type names or API shapes; describe engineering only through its
+practical effect. No headings or tables inside the section; a short list is fine.
+Before preview, reread it alone: if a reader could not predict the result of the
+main flow from it, it is missing something; if a sentence does not help the
+reader judge or act, cut it.
+
+## Verification (E2E)
+
+Each criterion specifies one user journey for an automated end-to-end test
+(Playwright against the running application) during delivery. Issue creation
+writes the criteria and test plan only. A human can still follow them by hand,
+but automation is the default delivery proof:
+
+- stable IDs `AC-1`, `AC-2`, … referenced by
+  [acceptance testing](../../../../docs/agents/acceptance-testing.md);
+- `Given` names concrete seed data or state; `When` uses visible labels, roles
+  and actions; `Then` states what is observable on screen, never internal state;
+- cover the main flow, each acceptance criterion from the ticket, and
+  consequential exceptions (for example, a second user cannot see the first
+  user's data);
+- when a guarantee is not observable in a browser (direct resource requests,
+  persistence after restart), keep it as an automated AC that states the request
+  or restart and the observable response;
+- write `Then` so a test can assert it: accessible roles, names and text, counts,
+  URLs or response codes — not "looks right";
+- mark a criterion `(manual)` with a one-line reason only when it cannot be
+  automated, such as judging visual quality against the style guide. Keep manual
+  criteria rare; split the automatable part into its own AC.
+
+Payload, database and unit-level checks belong in `Testing seams`.
+
+## For Agent
+
+Make this section sufficient for implementation without the conversation or
+`For Human`. `Code architecture` carries the accepted design from
+[investigate and design](01-investigate-design.md#propose-the-implementation-design).
+Paths and snippets are binding where the user accepted them (library choice,
+module ownership, contracts) and illustrative otherwise (private helper names,
+exact file splits inside one module); say which. Changing an agreed boundary
+returns to design.
+
+Label excerpts from inspected existing source by path and symbol. Label proposed
+interface snippets as design, without claiming they were executed. Record
+unverified integration claims and their delivery validation plan. For UI changes,
+describe the selected appearance and interaction contract in text; static
+illustrations supplement it.
+
+## Title
+
+Prefix the title with the most specific owning scope, or two when genuinely
+cross-cutting: General, UI, UX, Accessibility, Localization, Performance,
+Security, Privacy, Data, API, Documentation, Testing, Developer Experience,
+Dependency, Infrastructure.
 
 ## Diagrams
 
-Use a diagram only when it clarifies interactions, sequence, branching, timing
-or responsibilities better than text or a table. Place it beside the explanation
-in `For Human`; keep `For Agent` sufficient without it. Write Mermaid 11 source
-with `accTitle` and `accDescr`, and inspect its rendered preview before requesting
-confirmation.
+This covers diagrams written into the issue. Illustrations made for the user's
+review stay in the [review layer](../SKILL.md#two-output-layers) and are not
+written here.
+
+Use a diagram only when it clarifies interactions, sequence or responsibilities
+better than text. Put it in `Data flow`; `For Human` stays text-only. Write
+Mermaid 11 source with `accTitle` and `accDescr`, and inspect its rendered
+preview before requesting confirmation.

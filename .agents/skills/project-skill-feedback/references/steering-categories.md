@@ -17,7 +17,7 @@ Owners: [checkpoint](../../project-create-issue/references/00-run-checkpoint.md)
 Update route: locate where the requirement was lost. Strengthen reconciliation of
 the full accepted scope against the draft and dependent artifacts at that handoff.
 Distinguish explicit removal from silence or a later change to a neighboring control.
-Require missing decisions to return to alignment; clarify readback when only the
+Require missing decisions to return to design; clarify readback when only the
 published body lost content. Preserve the human/agent audience distinction.
 
 Walkthrough: a layout revision retains an accepted upload flow; an explicit request to remove the flow updates every dependent contract.
@@ -58,21 +58,24 @@ Walkthrough: a selected row conveys its state without a repeated total; an uploa
 
 ## Human–agent interaction
 
-Signals: questions bypass `grilling`, appear during the agent loop, repeat settled
-answers, or the agent treats its recommendation as the user's selection.
+Signals: the agent asks open questions where it could have proposed a default,
+interviews the user before showing anything concrete, repeats settled answers,
+or hides an invented default instead of marking it `(proposed)`.
 
-Owners: [consultation](../../project-create-issue/SKILL.md#consult-on-the-feature),
-[alignment](../../project-create-issue/references/01-investigate-align.md#align-with-the-user),
+Owners: [working style](../../project-create-issue/SKILL.md#working-style-propose-dont-interview),
+[ticket scope](../../project-create-issue/SKILL.md#load-the-ticket-scope),
+[design](../../project-create-issue/references/01-investigate-design.md#propose-the-implementation-design),
 and the applicable global question instructions. Delivery decision handoffs are in
 [delivery](../../project-deliver-issue/SKILL.md).
 
-Update route: repair the route to the designated question procedure at the decision
-point. Retain answers and distinguish proof acceptance, shared understanding and
+Update route: repair the propose-and-react loop at the decision point. Retain
+corrections and distinguish proof acceptance, shared understanding and
 publication approval. Keep the existing global question policy authoritative;
 report a clearly missed rule as execution failure rather than duplicating it.
 
-Walkthrough: unresolved architecture choices stop dependent work for a question
-round; an already accepted choice proceeds without asking it again.
+Walkthrough: an unresolved architecture choice is presented as a recommended
+approach that stops dependent work until accepted; an already accepted choice
+proceeds without asking again.
 
 ## Architecture and domain alignment
 
@@ -80,7 +83,7 @@ Signals: alternatives omit consequential tradeoffs, ownership or database effect
 remain unclear, scale constraints surface late, or a technical choice misstates
 the user's product intent.
 
-Owners: [investigation and architecture choice](../../project-create-issue/references/01-investigate-align.md),
+Owners: [investigation and implementation design](../../project-create-issue/references/01-investigate-design.md),
 [code-design proof](../../project-create-issue/references/03-code-design-validation.md),
 and [For Agent](../../project-create-issue/references/02-issue-contract.md).
 
@@ -94,7 +97,7 @@ Walkthrough: high volume may warrant batching; a bounded single-record edit does
 
 ## Phase sequencing and evidence
 
-Signals: drafting starts before alignment, a phase is declared complete without
+Signals: drafting starts before the design is accepted, a phase is declared complete without
 its output, conditional proof is skipped without grounds, or changed artifacts
 retain stale acceptance.
 

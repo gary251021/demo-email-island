@@ -15,6 +15,10 @@ Carry the [review stopping outcome](04_review.md#stopping-rule) into the preview
 include completed round count, final axis statuses, and every unresolved T3 with
 its impact when accepted as ACCEPTED_WITH_T3. T1/T2 findings block review acceptance.
 
+Include the final visual scorecards (total and per-dimension scores per
+reference) and the E2E preservation result: pre-existing suite status, any
+changed or removed tests with their recorded reasons, and retained regression tests.
+
 Verify the complete issue acceptance criteria using the applicable project
 procedures and explicit issue exceptions. Record actual checks and outcomes in
 the delivery evidence and MR preview.

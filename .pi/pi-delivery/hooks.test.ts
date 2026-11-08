@@ -14,11 +14,8 @@ const cleanup: string[] = [];
 afterEach(() => { for (const path of cleanup.splice(0)) rmSync(path, { recursive: true, force: true }); });
 
 describe("Codex hook adapter with real scripts", () => {
-  it("translates Pi edits and blocks protected paths but allows application paths", () => {
+  it("translates Pi edits into Codex edit payloads", () => {
     expect(codexInput("edit", { path: ".codex/hooks.json", edits: [] })).toMatchObject({ tool_name: "Edit", tool_input: { file_path: ".codex/hooks.json" } });
-    expect(runHook("approval", event("PreToolUse", "Edit", { file_path: ".codex/hooks.json" })).reason).toContain("APPROVE_PROTECTED_EDIT");
-    expect(runHook("approval", event("PreToolUse", "Write", { file_path: "src/routes/index.tsx" })).decision).toBe("allow");
-    expect(runHook("approval", { ...event("UserPromptSubmit", "input", {}), prompt: "No approval" }).decision).toBe("allow");
   });
   it("blocks bad GitLab commands and integration pushes, allows harmless Bash", () => {
     expect(runHook("gitlab", event("PreToolUse", "Bash", { command: "glab issue create --title bad" })).decision).toBe("block");
@@ -28,12 +25,12 @@ describe("Codex hook adapter with real scripts", () => {
     expect(runHook("integration", event("PreToolUse", "subagent", { task: "ISSUE_IMPL=oops", agent: "worker" })).decision).toBe("block");
     expect(runHook("integration", event("PreToolUse", "subagent", { task: "Review docs", agent: "reviewer", context: "fresh" })).decision).toBe("allow");
   });
-  it("injects one clarification from workflow-state after a Bash tool result", () => {
-    execFileSync(process.execPath, [resolve(repo, ".codex/hooks/workflow-state.mjs"), "set", "investigation", "need_clarification"], {
+  it("injects one feedback reminder from workflow-state after a Bash tool result", () => {
+    execFileSync(process.execPath, [resolve(repo, ".codex/hooks/workflow-state.mjs"), "set", "investigation", "awaiting_feedback"], {
       env: { ...process.env, CODEX_SESSION_ID: session }, encoding: "utf8",
     });
-    const payload = event("PostToolUse", "Bash", { command: "node .codex/hooks/workflow-state.mjs set investigation need_clarification" });
-    expect(runHook("workflow", payload).context).toContain("grilling skill");
+    const payload = event("PostToolUse", "Bash", { command: "node .codex/hooks/workflow-state.mjs set investigation awaiting_feedback" });
+    expect(runHook("workflow", payload).context).toContain("Propose, don't interview");
     expect(runHook("workflow", payload).decision).toBe("allow");
   });
   it("marks reviewable changes and translates a Stop block", () => {

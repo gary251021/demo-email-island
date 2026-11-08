@@ -9,7 +9,7 @@ metadata:
 
 # Project Deliver Issue
 
-Read [tracker guidance](../../../docs/agents/issue-tracker.md) and [delivery policy](../../../docs/agents/issue-delivery-policy.md) before preparing a branch. Confirm the tracker, base, target and publication authority; if any required value is unconfigured, stop before invoking delivery scripts or mutating Git. The coordinator owns preparation, shared discovery, bounded assignments, integration, acceptance, independent review and the local change-request preview. This workflow authorizes delegated implementation and review. Implementers write application code and its tests against coordinator-defined scenarios under [acceptance testing](../../../docs/agents/acceptance-testing.md); reviewers inspect both. An independent verifier may execute and assess evidence; implementers write their own tests. Dispatch ready work while preparing independent contracts.
+Read [tracker guidance](../../../docs/agents/issue-tracker.md) and [delivery policy](../../../docs/agents/issue-delivery-policy.md) before preparing a branch. Apply the policy's approved local delivery defaults without reconfirmation, including its default `demo` branch and target. A missing remote does not block local delivery. If a required value remains unconfigured after applying the defaults, stop before invoking delivery scripts or mutating Git and ask for that value. The coordinator owns preparation, shared discovery, bounded assignments, integration, acceptance, independent review and the local change-request preview. This workflow authorizes delegated implementation and review. Implementers write application code and its tests against coordinator-defined scenarios under [acceptance testing](../../../docs/agents/acceptance-testing.md); reviewers inspect both. An independent verifier may execute and assess evidence; implementers write their own tests. Dispatch ready work while preparing independent contracts.
 
 ## Model selection and context
 
@@ -30,6 +30,10 @@ fresh reviewer context and retain subagent IDs for corrections. The legacy
 
 Use the explicit assignment's responsibility and authority boundary. Implementation assignments own bounded code/test paths and acceptance scenarios; correction assignments retain findings and revision evidence. Review assignments own one independent axis and are read-only. Without an assignment, act as the coordinator. Context choice is a native runtime option, not a role prompt. Other supported harnesses use their available transport while preserving these role, context and authority boundaries; report unavailable capabilities.
 
+### Coordinator boundary
+
+The main agent is exclusively the coordinator. It never authors or edits application code, tests, implementation configuration or scripts. Delegate every implementation change, including small fixes, review corrections and integration-conflict edits, to an implementer; independent reviewers remain read-only. The coordinator may inspect sources, define contracts and assignments, prepare checkouts, run existing scripts and checks, integrate implementer commits, assess evidence and maintain delivery records and previews. If delegation is unavailable, report the blocker instead of taking over implementation.
+
 ## Phase index
 
 Read the phase when entering it. Scripts and instructions are siblings.
@@ -46,4 +50,4 @@ For an existing change-request conflict use [target-side conflict integration](r
 
 ## Script interface
 
-Run `node <phase-script> <operation> '<JSON input>'`; `--help` lists operations. Each operation is exported. Success returns `{ "ok": true, "data": ... }` and exit 0; failure returns `{ "ok": false, "error": { "code": "...", "message": "..." } }` and exit 1. Shared checks live in [scripts/shared.mjs](scripts/shared.mjs). Phase 01 mutates Git and its existing branch-preparation script still assumes the parked policy in [the temporary strategy](references/_temp-branching-strategy.md). Run it only after the script and project configuration have been reconciled. Other operations validate state or build legacy transport payloads. Pi uses native delegation rather than the legacy chat-payload builder. The coordinator verifies semantic context completeness and actual acceptance; phase 04's script prepares revision/diff evidence.
+Run `node <phase-script> <operation> '<JSON input>'`; `--help` lists operations. Each operation is exported. Success returns `{ "ok": true, "data": ... }` and exit 0; failure returns `{ "ok": false, "error": { "code": "...", "message": "..." } }` and exit 1. Shared checks live in [scripts/shared.mjs](scripts/shared.mjs). Phase 01 mutates Git: it creates the issue branch from the latest local `demo` tip. Other operations validate state or build legacy transport payloads. Pi uses native delegation rather than the legacy chat-payload builder. The coordinator verifies semantic context completeness and actual acceptance; phase 04's script prepares revision/diff evidence.

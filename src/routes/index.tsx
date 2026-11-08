@@ -5,5 +5,7 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  return <main className="grid min-h-screen place-items-center">Email Island</main>;
+  return (
+    <main className="grid min-h-screen place-items-center">Email Island</main>
+  );
 }

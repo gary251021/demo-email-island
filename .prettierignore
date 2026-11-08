@@ -1,0 +1,14 @@
+# Build output and generated files
+dist/
+.output/
+.nitro/
+.tanstack/
+coverage/
+src/routeTree.gen.ts
+package-lock.json
+
+# shadcn default, should not alter
+src/components/ui/
+
+# Local issue tracker scratch
+.scratch/
