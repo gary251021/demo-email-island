@@ -6,7 +6,7 @@ import type {
   ReplyInput,
   SnapshotInput,
 } from "../../lib/mailbox";
-import { readMail, readMailList } from "./mailbox.server";
+import { readMail, readActiveUnreadIds } from "./mailbox.server";
 
 function transaction<T>(action: () => T): T {
   db.exec("BEGIN IMMEDIATE");
@@ -56,13 +56,7 @@ export function saveArchive(ownerKey: string, input: MailInput) {
   });
 }
 export function readQuickArchivePreview(ownerKey: string, input: MailScope) {
-  const mails = readMailList(ownerKey, { ...input, view: "active" });
-  return {
-    mailIds: mails
-      .filter((mail) => mail.readAt === null)
-      .map((mail) => mail.id)
-      .sort((left, right) => left.localeCompare(right)),
-  };
+  return { mailIds: readActiveUnreadIds(ownerKey, input) };
 }
 export function saveUnreadSnapshot(ownerKey: string, input: SnapshotInput) {
   return transaction(() => {

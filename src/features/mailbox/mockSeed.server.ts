@@ -1,3 +1,4 @@
+import { websiteTimeline } from "./timelineTemplates.server";
 import type { DomainId } from "../../lib/mailbox";
 
 export const domains: { id: DomainId; name: string }[] = [
@@ -194,3 +195,40 @@ export const seedCategories: {
     body: "謝謝你參與上月活動。這封回顧已經讀過，仍可隨時回來查看。",
   },
 ];
+
+export const storySeed = {
+  categoryKey: "bills",
+  requiresReply: [
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+    false,
+  ],
+  sourceMails: websiteTimeline.sourceMails,
+};

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { Page } from "@playwright/test";
-import { mailDetailSchema, mailSummarySchema } from "../../lib/mailbox";
+import { mailDetailSchema, mailListSchema } from "../../lib/mailbox";
 import {
   test,
   expect,
@@ -28,9 +28,9 @@ async function list(
   input: ReturnType<typeof scopeOf>,
   view = "active",
 ) {
-  return mailSummarySchema
-    .array()
-    .parse(resultData(await rpc(page, "listMail", { ...input, view })));
+  return mailListSchema.parse(
+    resultData(await rpc(page, "listMail", { ...input, view })),
+  ).mails;
 }
 async function readFirst(page: Page) {
   await openQ4(page);

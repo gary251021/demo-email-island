@@ -206,11 +206,65 @@ button.island-label:hover {
 .icon-button:hover {
   background: #dfe3d4;
 }
+.mail-list-content {
+  min-height: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+.mail-timeline {
+  margin: 0 25px;
+  padding: 22px 0 24px;
+  border-bottom: 1px solid #d9dece;
+}
+.mail-timeline h2 {
+  margin: 0 0 20px;
+  color: #33596a;
+  font-size: 18px;
+  font-weight: 650;
+}
+.mail-timeline ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mail-timeline li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 12px;
+}
+.mail-timeline li + li {
+  margin-top: 23px;
+}
+.timeline-number {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #efe1bf;
+  color: #594b30;
+  box-shadow: 0 2px 3px #675b3226;
+  font-weight: 650;
+}
+.mail-timeline h3 {
+  margin: 1px 0 4px;
+  font-size: 16px;
+  color: #2d463e;
+}
+.mail-timeline p {
+  margin: 7px 0 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.mail-timeline .timeline-dates {
+  margin-top: 0;
+  color: #586c64;
+  font-size: 12px;
+}
 .mail-list {
   margin: 0;
   padding: 0 25px;
   list-style: none;
-  overflow: auto;
 }
 .mail-list li + li {
   border-top: 1px solid #e3e5d9;

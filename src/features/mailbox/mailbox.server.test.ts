@@ -1,7 +1,8 @@
 // @vitest-environment node
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { rmSync } from "node:fs";
 import { dirname } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 import { randomUUID } from "node:crypto";
 import { db, databasePath } from "../../lib/db.server";
 import {
@@ -10,6 +11,7 @@ import {
   readMailList,
   readMail,
   saveMailRead,
+  writeMailboxMail,
 } from "./mailbox.server";
 
 const owner = randomUUID();
@@ -37,15 +39,15 @@ describe("owner-scoped mailbox persistence", () => {
       domainId: "core-projects" as const,
       subcategoryId: category.id,
     };
-    const mail = readMailList(owner, { ...listInput, view: "active" })[0];
+    const mail = readMailList(owner, { ...listInput, view: "active" }).mails[0];
     if (!mail) throw new Error("Missing mail");
     const input = { ...listInput, mailId: mail.id };
     const saved = saveMailRead(owner, input);
     expect(saveMailRead(owner, input)).toEqual(saved);
     initializeMailbox(owner);
-    expect(readMailList(owner, { ...listInput, view: "active" })).toHaveLength(
-      3,
-    );
+    expect(
+      readMailList(owner, { ...listInput, view: "active" }).mails,
+    ).toHaveLength(3);
     expect(readMail(owner, input).readAt).toBe(saved.readAt);
     expect(readOverview(owner).domains[0]?.unreadCount).toBe(3);
   });
@@ -75,7 +77,7 @@ describe("owner-scoped mailbox persistence", () => {
       db
         .prepare("SELECT COUNT(*) AS count FROM mails WHERE owner_id = ?")
         .get(secondOwner)?.count,
-    ).toBe(86);
+    ).toBe(106);
   });
 
   it("rejects another owner's IDs and inconsistent parent combinations", () => {
@@ -85,7 +87,8 @@ describe("owner-scoped mailbox persistence", () => {
       domainId: "core-projects" as const,
       subcategoryId: category.id,
     };
-    const mail = readMailList(secondOwner, { ...input, view: "active" })[0];
+    const mail = readMailList(secondOwner, { ...input, view: "active" })
+      .mails[0];
     if (!mail) throw new Error("Missing mail");
     expect(() => readMailList(owner, { ...input, view: "active" })).toThrow(
       "NOT_FOUND",
@@ -132,6 +135,89 @@ describe("owner-scoped mailbox persistence", () => {
   });
 });
 
+describe("timeline list snapshot and canonical writes", () => {
+  it("keeps category, list, count and summary in one snapshot across a concurrent writer", () => {
+    const category = readOverview(owner).domains.find(
+      (domain) => domain.id === "finance-bills",
+    )?.subcategories[0];
+    if (!category) throw new Error("Missing story");
+    const input = {
+      domainId: "finance-bills" as const,
+      subcategoryId: category.id,
+    };
+    const before = readMailList(owner, { ...input, view: "active" });
+    expect(before.timeline).not.toBeNull();
+    const writer = new DatabaseSync(databasePath);
+    const prepare = db.prepare.bind(db);
+    const spy = vi.spyOn(db, "prepare").mockImplementation((sql) => {
+      const statement = prepare(sql);
+      if (sql.startsWith("SELECT id FROM subcategories")) {
+        const get = statement.get.bind(statement);
+        vi.spyOn(statement, "get").mockImplementation((...params) => {
+          const row = get(...params);
+          writer
+            .prepare(
+              "UPDATE mails SET sender='Concurrent writer',read_at=NULL WHERE owner_id=? AND seed_key='website-story-1'",
+            )
+            .run(owner);
+          return row;
+        });
+      }
+      return statement;
+    });
+    try {
+      expect(readMailList(owner, { ...input, view: "active" })).toEqual(before);
+    } finally {
+      spy.mockRestore();
+      writer.close();
+    }
+    const after = readMailList(owner, { ...input, view: "active" });
+    expect(after.unreadCount).toBe(11);
+    expect(after.timeline).toBeNull();
+    expect(
+      after.mails.find((mail) => mail.subject === "需求確認 · 1")?.sender,
+    ).toBe("Concurrent writer");
+  });
+
+  it("authorizes both current identity and destination at the real write boundary", () => {
+    const category = readOverview(secondOwner).domains[0]?.subcategories[0];
+    const destination = readOverview(owner).domains[0]?.subcategories[0];
+    if (!category || !destination) throw new Error("Missing categories");
+    const mail = readMailList(secondOwner, {
+      domainId: "core-projects",
+      subcategoryId: category.id,
+      view: "active",
+    }).mails[0];
+    if (!mail) throw new Error("Missing source");
+    const source = readMail(secondOwner, {
+      domainId: "core-projects",
+      subcategoryId: category.id,
+      mailId: mail.id,
+    });
+    const input = {
+      id: source.id,
+      sender: source.sender,
+      subject: source.subject,
+      bodyText: source.bodyText,
+      receivedAt: source.receivedAt,
+      readAt: source.readAt,
+      requiresReply: source.requiresReply,
+      domainId: "core-projects" as const,
+      subcategoryId: destination.id,
+      seedKey: "write-test",
+    };
+    expect(() => writeMailboxMail(owner, input)).toThrow("NOT_FOUND");
+    expect(() => writeMailboxMail(secondOwner, input)).toThrow("NOT_FOUND");
+    expect(() =>
+      writeMailboxMail(owner, {
+        ...input,
+        id: undefined,
+        domainId: "internal-team",
+      }),
+    ).toThrow("NOT_FOUND");
+  });
+});
+
 describe("reply persistence constraints", () => {
   it("enforces reply owner/mail keys and orders simultaneous replies by id", () => {
     const category = readOverview(secondOwner).domains[0]!.subcategories[0]!;
@@ -139,7 +225,8 @@ describe("reply persistence constraints", () => {
       domainId: "core-projects" as const,
       subcategoryId: category.id,
     };
-    const mail = readMailList(secondOwner, { ...input, view: "active" })[0]!;
+    const mail = readMailList(secondOwner, { ...input, view: "active" })
+      .mails[0]!;
     const insert = db.prepare(
       "INSERT INTO mail_replies (id,owner_id,mail_id,body_text,created_at) VALUES (?,?,?,?,?)",
     );

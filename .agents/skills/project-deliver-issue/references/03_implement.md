@@ -62,9 +62,9 @@ map issue criteria to tests, distinguish acceptance E2E with external mocks from
 Playwright with real development services, and honor explicit layer exclusions.
 Include the selected layers and their boundaries in each relevant assignment.
 Preserve the coordinator-defined expectations while the implementer writes code
-and tests. Collect its separate baseline assertion evidence and integrated green. Run the complete acceptance E2E suite after integration.
+and tests. Collect its separate baseline assertion evidence and integrated green. After integration run only the focused E2E and unit scope from [local and CI test scope](../../../../docs/agents/acceptance-testing.md#local-and-ci-test-scope); the complete suite runs in GitHub Actions.
 Report test defects or requirement conflicts to the coordinator.
-After the integrated acceptance E2E suite passes, add only warranted unit coverage.
+After the focused acceptance E2E scope passes, add only warranted unit coverage.
 
 ## Ticket execution
 
@@ -101,7 +101,7 @@ workflow replaces per-ticket and stop-hook review with phase 04.
 Finish with one non-merge commit whose sole parent is `Ticket start SHA` and a
 clean assigned checkout, containing the owned code and tests. Return the
 criterion → test mapping, baseline SHA/test-only diff/assertion results, actual
-integrated checks and outstanding acceptance. Complete acceptance requires the
-combined suite to pass. Return the commit SHA,
+integrated focused checks and outstanding acceptance. Complete acceptance requires the
+CI `Lint and tests` check on the PR to pass. Return the commit SHA,
 commands/results, any test-expectation changes with reasons, blockers, and new
 findings or changed assumptions needed by other workers.

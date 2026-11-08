@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { mailListSchema } from "../../lib/mailbox";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { Locator, Page } from "@playwright/test";
@@ -50,7 +51,7 @@ test("AC-1 entry-disabled-google-and-initialize", async ({ page, app }) => {
           view: "active",
         }),
       );
-      expect(Array.isArray(result) && result.length > 0).toBe(true);
+      expect(mailListSchema.parse(result).mails.length).toBeGreaterThan(0);
     }
   }
   expect(outbound).toEqual([]);

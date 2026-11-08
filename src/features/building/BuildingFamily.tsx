@@ -1,5 +1,5 @@
 import type { DomainId } from "../../lib/mailbox";
-import type { BuildingTier } from "./buildingTier";
+import type { BuildingTier } from "../../lib/buildingTier";
 import {
   Block,
   Roof,

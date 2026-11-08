@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ListMailInput, MailInput, MailView } from "../../lib/mailbox";
 import { mailListQueryOptions } from "./mailbox.queries";
+import { TimelineSummary } from "./TimelineSummary";
 import { MailActions } from "./MailActions";
 import { useMailReader } from "./useMailReader";
 
@@ -102,9 +103,9 @@ function MailList({
   const list = useQuery(mailListQueryOptions(ownerKey, input));
   useEffect(() => {
     heading.current?.focus();
-  }, [list.isSuccess]);
+  }, [list.isSuccess, list.isFetching]);
   useUnauthenticated(list.error, onUnauthenticated);
-  if (list.isPending)
+  if (list.isPending || list.isFetching)
     return (
       <p className="panel-message" role="status">
         正在載入郵件…
@@ -114,15 +115,21 @@ function MailList({
     return <ReadError error={list.error} retry={() => void list.refetch()} />;
 
   return (
-    <div>
+    <div
+      className="mail-list-content"
+      role="region"
+      aria-label="郵件內容"
+      tabIndex={0}
+    >
       <h2 className="mail-list-title" ref={heading} tabIndex={-1}>
         {input.view === "archived" ? "已封存列表" : "郵件列表"}
       </h2>
-      {list.data.length === 0 && (
+      {list.data.mails.length === 0 && (
         <p className="panel-message">這裡還沒有郵件。</p>
       )}
+      {list.data.timeline && <TimelineSummary timeline={list.data.timeline} />}
       <ul className="mail-list" aria-label="郵件列表">
-        {list.data.map((mail) => (
+        {list.data.mails.map((mail) => (
           <li key={mail.id}>
             <button
               type="button"
