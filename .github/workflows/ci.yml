@@ -1,0 +1,205 @@
+name: CI and demo image
+
+on:
+  pull_request:
+    paths-ignore: &docs-only
+      - ".scratch/**"
+      - "docs/**"
+      - ".agents/**"
+      - "reference/**"
+      - "**/*.md"
+  push:
+    branches: [demo]
+    paths-ignore: *docs-only
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Lint, types, unit and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-deps
+      - run: npm run lint
+      - run: npm run lint:deps
+      - run: npm run typecheck
+      - name: Build pinned Redis and configure classifier tests
+        run: |
+          test_runtime="$RUNNER_TEMP/email-island-tests"
+          mkdir -p "$test_runtime/redis" "$test_runtime/results"
+          {
+            echo "EMAIL_ISLAND_TEST_RUNTIME=$test_runtime"
+            echo "EMAIL_ISLAND_REDIS_BINARY=$test_runtime/redis-8.10.3/src/redis-server"
+            echo "EMAIL_ISLAND_REDIS_URL=redis://127.0.0.1:6402"
+            echo "EMAIL_ISLAND_REDIS_DATA=$test_runtime/redis"
+            echo "TYPESAFE_BASE_URL=http://127.0.0.1:4302"
+            echo "EMAIL_ISLAND_E2E_PORT=4212"
+            echo "EMAIL_ISLAND_E2E_REPORT=$test_runtime/results/acceptance.json"
+            echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
+            echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
+          } >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          printf '%s  %s\n' '85ae62e175cc76f638015fa18cb384b549b6808a765425d9e9d47466f69532ea' "$test_runtime/redis.tar.gz" | sha256sum --check -
+          tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
+          make -C "$test_runtime/redis-8.10.3" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
+      - name: Start isolated Redis and Jev HTTP fixture
+        run: bash scripts/start-classifier-test-services.sh
+      - run: npm test -- --run
+      - run: npm run build
+      - name: Stop classifier test services
+        if: always()
+        run: |
+          if [[ -n "${EMAIL_ISLAND_TEST_RUNTIME:-}" ]]; then
+            bash scripts/stop-classifier-test-services.sh
+          fi
+      - name: Upload selected classifier failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classifier-checks-failure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/email-island-tests/results/acceptance.json
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/error-context.md
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.json
+            ${{ runner.temp }}/email-island-tests/provider.log
+            ${{ runner.temp }}/email-island-tests/redis/redis.log
+            ${{ runner.temp }}/email-island-tests/redis-build.log
+
+  e2e:
+    name: E2E (shard ${{ matrix.shard }}/4)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-deps
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: npx playwright install-deps chromium
+      - name: Build pinned Redis and configure classifier tests
+        run: |
+          test_runtime="$RUNNER_TEMP/email-island-tests"
+          mkdir -p "$test_runtime/redis" "$test_runtime/results"
+          {
+            echo "EMAIL_ISLAND_TEST_RUNTIME=$test_runtime"
+            echo "EMAIL_ISLAND_REDIS_BINARY=$test_runtime/redis-8.10.3/src/redis-server"
+            echo "EMAIL_ISLAND_REDIS_URL=redis://127.0.0.1:6402"
+            echo "EMAIL_ISLAND_REDIS_DATA=$test_runtime/redis"
+            echo "TYPESAFE_BASE_URL=http://127.0.0.1:4302"
+            echo "EMAIL_ISLAND_E2E_PORT=4212"
+            echo "EMAIL_ISLAND_E2E_REPORT=$test_runtime/results/acceptance.json"
+            echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
+            echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
+          } >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          printf '%s  %s\n' '85ae62e175cc76f638015fa18cb384b549b6808a765425d9e9d47466f69532ea' "$test_runtime/redis.tar.gz" | sha256sum --check -
+          tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
+          make -C "$test_runtime/redis-8.10.3" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
+      - name: Start isolated Redis and Jev HTTP fixture
+        run: bash scripts/start-classifier-test-services.sh
+      - run: npx playwright test --shard=${{ matrix.shard }}/4 --pass-with-no-tests
+      - name: Stop classifier test services
+        if: always()
+        run: |
+          if [[ -n "${EMAIL_ISLAND_TEST_RUNTIME:-}" ]]; then
+            bash scripts/stop-classifier-test-services.sh
+          fi
+      - name: Upload selected classifier failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classifier-e2e-failure-${{ matrix.shard }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/email-island-tests/results/acceptance.json
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/error-context.md
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.json
+            ${{ runner.temp }}/email-island-tests/provider.log
+            ${{ runner.temp }}/email-island-tests/redis/redis.log
+            ${{ runner.temp }}/email-island-tests/redis-build.log
+      - if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: blob-report
+          retention-days: 3
+
+  e2e-report:
+    name: Lint and tests
+    if: ${{ !cancelled() }}
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-deps
+      - uses: actions/download-artifact@v8
+        with:
+          pattern: blob-report-*
+          path: all-blob-reports
+          merge-multiple: true
+      - run: npx playwright merge-reports --reporter html ./all-blob-reports
+      - uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: playwright-report
+          retention-days: 7
+      - name: Require all checks
+        if: needs.checks.result != 'success' || needs.e2e.result != 'success'
+        run: |
+          echo "checks=${{ needs.checks.result }} e2e=${{ needs.e2e.result }}"
+          exit 1
+
+  image:
+    name: Build image
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/docker-image
+
+  publish:
+    name: Build and publish image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/demo'
+    needs: [checks, e2e]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: ./.github/actions/docker-image
+        with:
+          push: "true"

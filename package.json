@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
+    "start": "srvx --prod --host 0.0.0.0 --port 3000 --static ../client dist/server/server.mjs",
     "preview": "vite preview",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
@@ -35,6 +36,7 @@
     "ioredis": "6.0.0",
     "react": "~19.3.1",
     "react-dom": "~19.3.1",
+    "srvx": "1.0.8",
     "tailwind-merge": "^3.7.0",
     "three": "^0.187.0",
     "zod": "^4.6.7"
