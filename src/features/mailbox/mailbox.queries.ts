@@ -1,6 +1,11 @@
 import { queryOptions } from "@tanstack/react-query";
-import type { ListMailInput, MailInput } from "../../lib/mailbox";
-import { getOverview, listMail, getMail } from "./mailbox.functions";
+import type { ListMailInput, MailInput, MailScope } from "../../lib/mailbox";
+import {
+  getOverview,
+  listMail,
+  getMail,
+  getQuickArchivePreview,
+} from "./mailbox.functions";
 
 export const overviewQueryOptions = (ownerKey: string) =>
   queryOptions({
@@ -18,5 +23,12 @@ export const mailDetailQueryOptions = (ownerKey: string, input: MailInput) =>
   queryOptions({
     queryKey: ["mailbox", ownerKey, "detail", input],
     queryFn: () => getMail({ data: input }),
+    retry: false,
+  });
+
+export const quickArchiveQueryOptions = (ownerKey: string, input: MailScope) =>
+  queryOptions({
+    queryKey: ["mailbox", ownerKey, "quick-archive", input],
+    queryFn: () => getQuickArchivePreview({ data: input }),
     retry: false,
   });
