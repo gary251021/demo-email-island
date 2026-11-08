@@ -433,7 +433,11 @@ test("list-error-and-retry", async ({ page, app }) => {
   await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
   await page.getByRole("button", { name: /^待處理帳單，/ }).click();
   await expect.poll(() => started).toBe(true);
-  await expect(page.getByRole("status")).toContainText("正在載入郵件");
+  await expect(
+    page
+      .getByRole("dialog", { name: "待處理帳單郵件", exact: true })
+      .getByRole("status"),
+  ).toContainText("正在載入郵件");
   await expect(timeline(page)).toHaveCount(0);
   release();
   await expect(page.getByRole("alert")).toContainText("郵件載入失敗");

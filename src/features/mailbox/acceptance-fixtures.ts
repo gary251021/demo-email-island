@@ -118,10 +118,12 @@ export async function readQ4(page: Page) {
   await expect.poll(async () => (await q4(page)).mail.readAt).not.toBeNull();
 }
 
-type App = {
+export type App = {
   url: string;
   dbPath: string;
   restart: () => Promise<void>;
+  worker: (running: boolean) => Promise<void>;
+  ruleVersion: (version: string) => void;
   time: (date: Date) => void;
   sql: (statement: string) => void;
   withContext: (context: BrowserContext) => Promise<Page>;
@@ -175,6 +177,7 @@ static now(){return now();}
       testInfo.parallelIndex;
     const url = `http://127.0.0.1:${port}`;
     let output = "";
+    let ruleVersion = "1";
     let startupOutput = "";
     const launch = () => {
       startupOutput = "";
@@ -192,7 +195,13 @@ static now(){return now();}
           cwd: process.cwd(),
           env: {
             ...process.env,
+            EMAIL_ISLAND_CLASSIFICATION_RULE_VERSION: ruleVersion,
             EMAIL_ISLAND_DB_PATH: dbPath,
+            EMAIL_ISLAND_REDIS_URL:
+              process.env.EMAIL_ISLAND_REDIS_URL ?? "redis://127.0.0.1:6402",
+            TYPESAFE_BASE_URL:
+              process.env.TYPESAFE_BASE_URL ?? "http://127.0.0.1:4302",
+            JEV_API_KEY: "acceptance-provider-only",
             EMAIL_ISLAND_VITE_CACHE: join(directory, "vite-cache"),
             BETTER_AUTH_URL: url,
             BETTER_AUTH_SECRET:
@@ -205,14 +214,63 @@ static now(){return now();}
       child.stdout.on("data", (data: Buffer) => {
         output += data.toString();
         startupOutput += data.toString();
+        writeFileSync(join(directory, "server.log"), output);
       });
       child.stderr.on("data", (data: Buffer) => {
         output += data.toString();
         startupOutput += data.toString();
+        writeFileSync(join(directory, "server.log"), output);
       });
       return child;
     };
     let child = launch();
+    const launchWorker = () => {
+      const worker = spawn(
+        process.execPath,
+        [
+          "--import",
+          resolve("node_modules/tsx/dist/loader.mjs"),
+          "src/features/classifier/worker.server.ts",
+        ],
+        {
+          env: {
+            ...process.env,
+            EMAIL_ISLAND_CLASSIFICATION_RULE_VERSION: ruleVersion,
+            EMAIL_ISLAND_DB_PATH: dbPath,
+            EMAIL_ISLAND_REDIS_URL:
+              process.env.EMAIL_ISLAND_REDIS_URL ?? "redis://127.0.0.1:6402",
+            TYPESAFE_BASE_URL:
+              process.env.TYPESAFE_BASE_URL ?? "http://127.0.0.1:4302",
+            JEV_API_KEY: "acceptance-provider-only",
+          },
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
+      worker.stdout.on("data", (data: Buffer) => {
+        output += data.toString();
+        writeFileSync(join(directory, "server.log"), output);
+      });
+      worker.stderr.on("data", (data: Buffer) => {
+        output += data.toString();
+        writeFileSync(join(directory, "server.log"), output);
+      });
+      return worker;
+    };
+    let classifier: ReturnType<typeof launchWorker> | null = null;
+    async function controlWorker(running: boolean) {
+      if (
+        classifier &&
+        (classifier.exitCode !== null || classifier.signalCode !== null)
+      )
+        classifier = null;
+      if (classifier && !running) {
+        const ended = once(classifier, "exit");
+        classifier.kill("SIGKILL");
+        await ended;
+        classifier = null;
+      }
+      if (!classifier && running) classifier = launchWorker();
+    }
     async function ready() {
       await expect
         .poll(
@@ -241,13 +299,20 @@ static now(){return now();}
     }
     try {
       await ready();
+      await controlWorker(true);
       await provideApp({
+        worker: controlWorker,
+        ruleVersion: (version) => {
+          ruleVersion = version;
+        },
         url,
         dbPath,
         restart: async () => {
+          await controlWorker(false);
           await stop();
           child = launch();
           await ready();
+          await controlWorker(true);
         },
         time: (date) => writeFileSync(clockPath, String(date.getTime())),
         sql: (statement) => {
@@ -265,6 +330,7 @@ static now(){return now();}
         },
       });
     } finally {
+      await controlWorker(false);
       await stop();
       await testInfo.attach("app-server.log", {
         body: output,

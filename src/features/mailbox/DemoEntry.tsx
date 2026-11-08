@@ -3,7 +3,7 @@ import { useHydrated, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../session/auth-client";
 import { AccountNav } from "../session/AccountNav";
 import { getIdentity } from "../session/session.functions";
-import { startDemo } from "./mailbox.functions";
+import { startClassifiedDemo } from "../classifier/classification.functions";
 
 export default function DemoEntry() {
   const navigate = useNavigate();
@@ -19,7 +19,7 @@ export default function DemoEntry() {
         const result = await authClient.signIn.anonymous();
         if (result.error) throw new Error(result.error.message);
       }
-      await startDemo({ data: {} });
+      await startClassifiedDemo({ data: {} });
       await navigate({ to: "/island" });
     } catch {
       setError(true);

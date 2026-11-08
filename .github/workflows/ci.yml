@@ -30,8 +30,51 @@ jobs:
       - run: npm run lint
       - run: npm run lint:deps
       - run: npm run typecheck
+      - name: Build pinned Redis and configure classifier tests
+        run: |
+          test_runtime="$RUNNER_TEMP/email-island-tests"
+          mkdir -p "$test_runtime/redis" "$test_runtime/results"
+          {
+            echo "EMAIL_ISLAND_TEST_RUNTIME=$test_runtime"
+            echo "EMAIL_ISLAND_REDIS_BINARY=$test_runtime/redis-8.10.3/src/redis-server"
+            echo "EMAIL_ISLAND_REDIS_URL=redis://127.0.0.1:6402"
+            echo "EMAIL_ISLAND_REDIS_DATA=$test_runtime/redis"
+            echo "TYPESAFE_BASE_URL=http://127.0.0.1:4302"
+            echo "EMAIL_ISLAND_E2E_PORT=4212"
+            echo "EMAIL_ISLAND_E2E_REPORT=$test_runtime/results/acceptance.json"
+            echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
+            echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
+          } >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          printf '%s  %s\n' 'edde778f6bdee7581e42fc139ca9e07e2822212092f7501f99989656e3629d02' "$test_runtime/redis.tar.gz" | sha256sum --check -
+          tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
+          make -C "$test_runtime/redis-8.10.3/src" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
+      - name: Start isolated Redis and Jev HTTP fixture
+        run: bash scripts/start-classifier-test-services.sh
       - run: npm test -- --run
       - run: npm run build
+      - name: Stop classifier test services
+        if: always()
+        run: |
+          if [[ -n "${EMAIL_ISLAND_TEST_RUNTIME:-}" ]]; then
+            bash scripts/stop-classifier-test-services.sh
+          fi
+      - name: Upload selected classifier failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classifier-checks-failure
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/email-island-tests/results/acceptance.json
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/error-context.md
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.json
+            ${{ runner.temp }}/email-island-tests/provider.log
+            ${{ runner.temp }}/email-island-tests/redis/redis.log
+            ${{ runner.temp }}/email-island-tests/redis-build.log
 
   e2e:
     name: E2E (shard ${{ matrix.shard }}/4)
@@ -55,7 +98,50 @@ jobs:
         run: npx playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: npx playwright install-deps chromium
+      - name: Build pinned Redis and configure classifier tests
+        run: |
+          test_runtime="$RUNNER_TEMP/email-island-tests"
+          mkdir -p "$test_runtime/redis" "$test_runtime/results"
+          {
+            echo "EMAIL_ISLAND_TEST_RUNTIME=$test_runtime"
+            echo "EMAIL_ISLAND_REDIS_BINARY=$test_runtime/redis-8.10.3/src/redis-server"
+            echo "EMAIL_ISLAND_REDIS_URL=redis://127.0.0.1:6402"
+            echo "EMAIL_ISLAND_REDIS_DATA=$test_runtime/redis"
+            echo "TYPESAFE_BASE_URL=http://127.0.0.1:4302"
+            echo "EMAIL_ISLAND_E2E_PORT=4212"
+            echo "EMAIL_ISLAND_E2E_REPORT=$test_runtime/results/acceptance.json"
+            echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
+            echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
+          } >> "$GITHUB_ENV"
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          printf '%s  %s\n' 'edde778f6bdee7581e42fc139ca9e07e2822212092f7501f99989656e3629d02' "$test_runtime/redis.tar.gz" | sha256sum --check -
+          tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
+          make -C "$test_runtime/redis-8.10.3/src" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
+      - name: Start isolated Redis and Jev HTTP fixture
+        run: bash scripts/start-classifier-test-services.sh
       - run: npx playwright test --shard=${{ matrix.shard }}/4 --pass-with-no-tests
+      - name: Stop classifier test services
+        if: always()
+        run: |
+          if [[ -n "${EMAIL_ISLAND_TEST_RUNTIME:-}" ]]; then
+            bash scripts/stop-classifier-test-services.sh
+          fi
+      - name: Upload selected classifier failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: classifier-e2e-failure-${{ matrix.shard }}
+          retention-days: 7
+          if-no-files-found: ignore
+          path: |
+            ${{ runner.temp }}/email-island-tests/results/acceptance.json
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/artifacts/**/error-context.md
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.png
+            ${{ runner.temp }}/email-island-tests/results/nav/**/*.json
+            ${{ runner.temp }}/email-island-tests/provider.log
+            ${{ runner.temp }}/email-island-tests/redis/redis.log
+            ${{ runner.temp }}/email-island-tests/redis-build.log
       - if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:

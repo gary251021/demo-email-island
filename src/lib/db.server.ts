@@ -1,7 +1,7 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import authSchema from "./auth-schema.sql?raw";
+const authSchema = readFileSync(resolve("src/lib/auth-schema.sql"), "utf8");
 
 export const databasePath = resolve(
   process.env.EMAIL_ISLAND_DB_PATH ?? ".data/email-island.sqlite",
@@ -47,8 +47,21 @@ db.exec(`
     body_text TEXT NOT NULL,
     received_at TEXT NOT NULL,
     read_at TEXT,
+    placement_revision INTEGER NOT NULL DEFAULT 0,
     UNIQUE(owner_id, seed_key),
     FOREIGN KEY(owner_id, subcategory_id) REFERENCES subcategories(owner_id, id)
   );
   CREATE INDEX IF NOT EXISTS mails_owner_category ON mails(owner_id, subcategory_id, received_at DESC, id);
 `);
+
+export function transaction<T>(operation: () => T): T {
+  db.exec("BEGIN IMMEDIATE");
+  try {
+    const result = operation();
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+}

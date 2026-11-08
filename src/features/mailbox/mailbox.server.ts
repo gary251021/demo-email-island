@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
-import { db } from "../../lib/db.server";
+import { db, transaction } from "../../lib/db.server";
 import {
   mailDetailSchema,
   mailListSchema,
@@ -61,9 +61,11 @@ function seedMailbox(ownerKey: string) {
   }
 }
 
-export function initializeMailbox(ownerKey: string) {
-  db.exec("BEGIN IMMEDIATE");
-  try {
+export function initializeMailbox(
+  ownerKey: string,
+  onImported: () => void = () => {},
+) {
+  transaction(() => {
     if (
       !db
         .prepare("SELECT owner_id FROM mailboxes WHERE owner_id = ?")
@@ -74,11 +76,8 @@ export function initializeMailbox(ownerKey: string) {
         "INSERT INTO mailboxes (owner_id,seed_version,initialized_at) VALUES (?,1,?)",
       ).run(ownerKey, new Date().toISOString());
     }
-    db.exec("COMMIT");
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
+    onImported();
+  });
   return { ownerKey };
 }
 
@@ -179,6 +178,122 @@ export function saveMailRead(ownerKey: string, input: MailInput) {
     "UPDATE mails SET read_at = ? WHERE owner_id = ? AND subcategory_id = ? AND id = ? AND read_at IS NULL",
   ).run(readAt, ownerKey, input.subcategoryId, input.mailId);
   return { mailId: input.mailId, readAt: readMail(ownerKey, input).readAt };
+}
+
+// These interfaces retain mailbox ownership of content and placement writes.
+export function getClassificationInputs(ownerKey: string, ids?: string[]) {
+  return mailDetailSchema
+    .extend({ placementRevision: z.number().int() })
+    .array()
+    .parse(
+      db
+        .prepare(
+          `SELECT ${mailColumns},m.placement_revision AS placementRevision
+      FROM mails m WHERE m.owner_id = ? ORDER BY m.id`,
+        )
+        .all(ownerKey),
+    )
+    .filter((mail) => !ids || ids.includes(mail.id));
+}
+
+export function listClassificationCandidates(ownerKey: string) {
+  return readOverview(ownerKey).domains.map((domain) => ({
+    id: domain.id,
+    name: domain.name,
+    description: null,
+    subcategories: domain.subcategories.map((category) => ({
+      id: category.id,
+      name: category.name,
+      description: null,
+    })),
+  }));
+}
+
+export function applyCategory(
+  ownerKey: string,
+  mailId: string,
+  subcategoryId: string,
+  expectedRevision: number,
+) {
+  if (
+    !db
+      .prepare("SELECT id FROM subcategories WHERE owner_id = ? AND id = ?")
+      .get(ownerKey, subcategoryId)
+  )
+    throw new Error("NOT_FOUND");
+  return (
+    db
+      .prepare(
+        `UPDATE mails SET subcategory_id = ?, placement_revision = placement_revision + 1
+    WHERE owner_id = ? AND id = ? AND placement_revision = ?`,
+      )
+      .run(subcategoryId, ownerKey, mailId, expectedRevision).changes === 1
+  );
+}
+
+export const importedMailSchema = z.strictObject({
+  key: z.string().min(1),
+  subcategoryId: z.uuid(),
+  sender: z.string(),
+  subject: z.string(),
+  bodyText: z.string(),
+  receivedAt: z.iso.datetime(),
+});
+
+export function importMail(
+  ownerKey: string,
+  input: z.infer<typeof importedMailSchema>,
+  onChanged: (mailId: string) => void,
+) {
+  return transaction(() => {
+    if (
+      !db
+        .prepare("SELECT id FROM subcategories WHERE owner_id = ? AND id = ?")
+        .get(ownerKey, input.subcategoryId)
+    )
+      throw new Error("NOT_FOUND");
+    const existing = db
+      .prepare(
+        "SELECT id,sender,subject,body_text,received_at FROM mails WHERE owner_id = ? AND seed_key = ?",
+      )
+      .get(ownerKey, input.key);
+    const id = existing ? String(existing.id) : randomUUID();
+    if (
+      existing &&
+      existing.sender === input.sender &&
+      existing.subject === input.subject &&
+      existing.body_text === input.bodyText &&
+      existing.received_at === input.receivedAt
+    )
+      return { mailId: id, changed: false };
+    if (existing) {
+      db.prepare(
+        "UPDATE mails SET sender=?,subject=?,body_text=?,received_at=? WHERE owner_id=? AND id=?",
+      ).run(
+        input.sender,
+        input.subject,
+        input.bodyText,
+        input.receivedAt,
+        ownerKey,
+        id,
+      );
+    } else {
+      db.prepare(
+        "INSERT INTO mails (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at) VALUES (?,?,?,?,?,?,?,?)",
+      ).run(
+        id,
+        ownerKey,
+        input.key,
+        input.subcategoryId,
+        input.sender,
+        input.subject,
+        input.bodyText,
+        input.receivedAt,
+      );
+    }
+    onChanged(id);
+    return { mailId: id, changed: true };
+  });
 }
 
 const mailboxWriteSchema = timelineMailSchema
