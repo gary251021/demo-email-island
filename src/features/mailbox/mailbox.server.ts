@@ -1,20 +1,24 @@
+import { z } from "zod";
 import { randomUUID } from "node:crypto";
 import { db } from "../../lib/db.server";
 import {
   mailDetailSchema,
-  mailSummarySchema,
+  mailListSchema,
+  domainIdSchema,
   overviewSchema,
 } from "../../lib/mailbox";
 import type { ListMailInput, MailInput } from "../../lib/mailbox";
-import { domains, seedCategories } from "./mockSeed.server";
+import {
+  matchMailTimeline,
+  timelineMailSchema,
+  unreadMailCount,
+} from "./mailTimeline.server";
+import { domains, seedCategories, storySeed } from "./mockSeed.server";
 
 function seedMailbox(ownerKey: string) {
   const insertCategory = db.prepare(
     "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name) VALUES (?,?,?,?,?)",
   );
-  const insertMail = db.prepare(`INSERT INTO mails
-  (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at)
-  VALUES (?,?,?,?,?,?,?,?,?)`);
   for (const category of seedCategories) {
     const categoryId = randomUUID();
     insertCategory.run(
@@ -24,21 +28,35 @@ function seedMailbox(ownerKey: string) {
       category.domainId,
       category.name,
     );
+    if (category.key === storySeed.categoryKey) {
+      for (const [index, source] of storySeed.sourceMails.entries()) {
+        writeMailboxMail(ownerKey, {
+          ...source,
+          domainId: category.domainId,
+          subcategoryId: categoryId,
+          readAt:
+            index < storySeed.sourceMails.length - category.unread
+              ? source.receivedAt
+              : null,
+        });
+      }
+      continue;
+    }
     for (let index = 0; index < Math.max(category.unread, 1); index++) {
       const receivedAt = new Date(
         Date.UTC(2026, 9, 1, 12) - index * 3_600_000,
       ).toISOString();
-      insertMail.run(
-        randomUUID(),
-        ownerKey,
-        `${category.key}-${index}`,
-        categoryId,
-        category.sender,
-        index === 0 ? category.subject : `${category.subject} · ${index + 1}`,
-        category.body,
+      writeMailboxMail(ownerKey, {
+        seedKey: `${category.key}-${index}`,
+        domainId: category.domainId,
+        subcategoryId: categoryId,
+        sender: category.sender,
+        subject:
+          index === 0 ? category.subject : `${category.subject} · ${index + 1}`,
+        bodyText: category.body,
         receivedAt,
-        category.unread === 0 ? receivedAt : null,
-      );
+        readAt: category.unread === 0 ? receivedAt : null,
+      });
     }
   }
 }
@@ -114,15 +132,31 @@ const mailColumns = `m.id,m.subcategory_id AS subcategoryId,m.sender,m.subject,
   m.body_text AS bodyText,m.received_at AS receivedAt,m.read_at AS readAt`;
 
 export function readMailList(ownerKey: string, input: ListMailInput) {
-  requireCategory(ownerKey, input);
-  return mailSummarySchema.array().parse(
-    db
+  db.exec("BEGIN");
+  try {
+    requireCategory(ownerKey, input);
+    const mails = db
       .prepare(
-        `SELECT ${mailColumns} FROM mails m
-    WHERE m.owner_id = ? AND m.subcategory_id = ? ORDER BY m.received_at DESC,m.id`,
+        `SELECT ${mailColumns},m.seed_key AS seedKey FROM mails m
+       WHERE m.owner_id = ? AND m.subcategory_id = ? ORDER BY m.received_at DESC,m.id`,
       )
-      .all(ownerKey, input.subcategoryId),
-  );
+      .all(ownerKey, input.subcategoryId);
+    const details = mailDetailSchema.array().parse(mails);
+    const unreadCount = unreadMailCount(details);
+    const result = mailListSchema.parse({
+      mails: details,
+      unreadCount,
+      timeline: matchMailTimeline(
+        timelineMailSchema.array().parse(mails),
+        unreadCount,
+      ),
+    });
+    db.exec("COMMIT");
+    return result;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 export function readMail(ownerKey: string, input: MailInput) {
@@ -145,4 +179,51 @@ export function saveMailRead(ownerKey: string, input: MailInput) {
     "UPDATE mails SET read_at = ? WHERE owner_id = ? AND subcategory_id = ? AND id = ? AND read_at IS NULL",
   ).run(readAt, ownerKey, input.subcategoryId, input.mailId);
   return { mailId: input.mailId, readAt: readMail(ownerKey, input).readAt };
+}
+
+const mailboxWriteSchema = timelineMailSchema
+  .extend({
+    id: z.uuid().optional(),
+    domainId: domainIdSchema,
+    subcategoryId: z.uuid(),
+    readAt: z.iso.datetime().nullable(),
+  })
+  .strict();
+
+// Canonical import/seed write boundary. A replacement keeps its resource identity.
+// This server-only service is not a public RPC and never accepts an owner in input.
+export function writeMailboxMail(
+  ownerKey: string,
+  raw: z.infer<typeof mailboxWriteSchema>,
+) {
+  const input = mailboxWriteSchema.parse(raw);
+  requireCategory(ownerKey, input);
+  const id = input.id ?? randomUUID();
+  if (
+    input.id &&
+    !db
+      .prepare("SELECT id FROM mails WHERE owner_id = ? AND id = ?")
+      .get(ownerKey, id)
+  )
+    throw new Error("NOT_FOUND");
+  db.prepare(
+    `INSERT INTO mails
+    (id,owner_id,seed_key,subcategory_id,sender,subject,body_text,received_at,read_at)
+    VALUES (?,?,?,?,?,?,?,?,?)
+    ON CONFLICT(id) DO UPDATE SET seed_key=excluded.seed_key,
+      subcategory_id=excluded.subcategory_id,sender=excluded.sender,subject=excluded.subject,
+      body_text=excluded.body_text,received_at=excluded.received_at,read_at=excluded.read_at
+    WHERE mails.owner_id=excluded.owner_id`,
+  ).run(
+    id,
+    ownerKey,
+    input.seedKey,
+    input.subcategoryId,
+    input.sender,
+    input.subject,
+    input.bodyText,
+    input.receivedAt,
+    input.readAt,
+  );
+  return { id };
 }
