@@ -1,61 +1,52 @@
-<!-- documentation-origin: Matt Pocock workflow configuration; project-specific -->
+# Issue tracker: Local Markdown
 
-# Issue Trackers
+Issues and specs live as Markdown files under `.scratch/`.
 
-GitLab is the default issue tracker. Local Markdown is a secondary tracker used
-only when the user explicitly requests it for the current work.
+## Conventions
 
-## GitLab: Default
+- Use one directory per feature: `.scratch/<feature-slug>/`.
+- Store the specification in `spec.md`.
+- Store each issue in `issues/<NN>-<slug>.md`, numbered from `01`
+  within its feature directory.
+- Identify issues by their repository-relative file paths. Resolve a
+  bare number within the selected feature; ask if it is ambiguous.
+- Record triage in a `Status:` line near the top, using the values in
+  `docs/agents/triage-labels.md`.
+- Track execution separately with `Progress: open`, `claimed`, or
+  `resolved`. New issues start with `Progress: open`.
+- Append comments and conversation history under `## Comments`.
 
-Issues and PRDs live as GitLab issues. Use the
-[`glab`](https://gitlab.com/gitlab-org/cli) CLI for all operations.
+## Skill operations
 
-### Conventions
+When a skill says "publish to the issue tracker", create the spec or
+individual issue file at the corresponding path above.
 
-- **Create an issue**: `glab issue create --title "..." --description "..."`.
-- **Read an issue**: `glab issue view <number> --comments`.
-- **List issues**: `glab issue list -F json`.
-- **Comment**: `glab issue note <number> --message "..."`.
-- **Apply / remove labels**: `glab issue update <number> --label "..."` / `--unlabel "..."`.
-- **Close**: `glab issue close <number>`.
-- **Merge requests**: Use `glab mr create`, `glab mr view`, `glab mr note`, etc.
+When a skill says "fetch the relevant ticket", read its file, including
+comments.
 
-Infer the repo from `git remote -v`; `glab` does this automatically inside the clone.
+When closing an issue, record its outcome and set `Progress: resolved`.
+Preserve the file as history.
 
-### Merge requests as a triage surface
+## Wayfinding operations
 
-Record requests in issues. Use merge requests to review their implementation.
+- Store the effort map in `.scratch/<feature-slug>/map.md`, with
+  Notes, Decisions-so-far, and Fog sections.
+- Store each child ticket in the feature's `issues/` directory.
+- Record its type with `Type: research`, `prototype`, `grilling`,
+  or `task`.
+- Record dependencies with `Blocked by: NN, NN`, referencing issues
+  in the same feature. A ticket is unblocked when all listed issues
+  have `Progress: resolved`.
+- Select the lowest-numbered open, unblocked ticket.
+- Claim a ticket by saving `Progress: claimed` before starting work.
+- Resolve it by appending `## Answer`, setting `Progress: resolved`,
+  and adding a summary and relative link to the map's Decisions-so-far.
 
-## Local Markdown: Explicit Opt-in
+## Delivery configuration
 
-When the user explicitly requests the local tracker:
+For implementation and release work, also read
+`docs/agents/issue-delivery-policy.md`. This tracker choice does not
+configure Git remotes, branches, or publication authority.
 
-- One feature uses one `.scratch/<feature-slug>/` directory.
-- The spec is `.scratch/<feature-slug>/spec.md`.
-- Implementation issues are separate files under
-  `.scratch/<feature-slug>/issues/<NN>-<slug>.md`, numbered from `01`.
-- Record triage state with a `Status:` line near the top.
-- Append conversation history under a `## Comments` heading.
-
-For local wayfinding:
-
-- The map is `.scratch/<effort>/map.md`.
-- Child tickets are `.scratch/<effort>/issues/<NN>-<slug>.md`.
-- Record dependencies with `Blocked by: NN, NN`.
-- Claim work by setting `Status: claimed`.
-- Resolve work by adding an `## Answer`, setting `Status: resolved`, and
-  updating the map's Decisions-so-far.
-
-## Skill Routing
-
-When a skill says "publish to the issue tracker":
-
-- Use GitLab unless the user explicitly selected local Markdown.
-- When local Markdown is selected, create the appropriate file under
-  `.scratch/<feature-slug>/`.
-
-When a skill says "fetch the relevant ticket":
-
-- Use `glab issue view <number> --comments` by default.
-- Read the referenced `.scratch/` file when local Markdown was explicitly
-  selected.
+`_temp-issue-tracker.md` remains reference material for the reconciliation
+TODO in `project.md`.

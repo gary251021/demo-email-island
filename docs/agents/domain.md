@@ -1,37 +1,30 @@
-<!-- documentation-origin: Matt Pocock workflow configuration; project-specific -->
+# Domain documentation
 
-# Domain Docs
+This repository uses a single-context layout:
 
-How engineering skills should consume this repo's domain documentation.
+- `project.md`: product behavior and requirements.
+- `CONTEXT.md`: domain vocabulary and boundaries, when established.
+- `docs/adr/`: adopted architectural decisions.
 
-## Retrieval routes
+## Before exploring
 
-- [Product overview](../product-overview.md) introduces the core concepts,
-  capabilities, and surrounding projects for product consultation.
-- [`CONTEXT.md`](../../CONTEXT.md) defines current domain vocabulary and boundaries.
-- `docs/adr/` contains accepted and superseded decisions.
-- `docs/specs/` contains dated design contracts.
-- `docs/plans/` contains implementation plans and progress records.
-- `docs/reports/` contains dated evidence snapshots. Individual reports are
-  intentionally not linked from agent guidance.
+Read the relevant parts of `project.md`, root `CONTEXT.md` when present,
+and ADRs concerning the area being explored. Inspect current application
+code when checking implemented behavior.
 
-## File structure
+If `CONTEXT.md` or an ADR directory is absent, continue silently.
+The domain-modeling skill creates documentation when terms or decisions
+are resolved.
 
-This is a single-context documentation layout:
+Files prefixed `_temp-` are pending references, as recorded in
+`project.md`; treat only adopted decisions as project rules.
 
-```text
-/
-├── CONTEXT.md
-└── docs/
-    └── adr/
-        ├── 0001-example-decision.md
-        └── 0002-example-decision.md
-```
+## Vocabulary and conflicts
 
-## Use the glossary's vocabulary
+Use terms defined in `CONTEXT.md` and by the current product owner.
+Record unresolved vocabulary for domain-modeling. Ask for clarification
+when a missing definition changes the result.
 
-When output names a domain concept, use the term defined in [`CONTEXT.md`](../../CONTEXT.md). If the concept isn't documented yet, note the gap for domain modeling.
-
-## Flag ADR conflicts
-
-If output contradicts an existing ADR, surface the conflict explicitly.
+Explicitly flag conflicts between a proposal, adopted ADRs, current code,
+or user requirements. Name the conflicting decision and explain why it
+may need revisiting.
