@@ -1,9 +1,9 @@
 # Issue branching strategy
 
-Before preparing a branch, confirm the issue's tracker, delivery base, target ref, dependency revisions, branch naming rule, and publication authority against current repository guidance. Pin the chosen refs to full SHAs. Preserve an existing issue branch and any unrelated work when continuing a task.
+Before preparing a branch, resolve the issue's tracker, target ref and dependency revisions using the [delivery policy's approved defaults](../../../../docs/agents/issue-delivery-policy.md#local-delivery-defaults) and explicit issue overrides. Pin the chosen refs to full SHAs. Preserve an existing issue branch and any unrelated work when continuing a task. Resolve remote publication authority when publication is requested.
 
-If this repository has not configured those choices, stop before running branch-preparation scripts or creating a branch. The previous production-tag and `feature/harness` conventions are parked in [_temp-branching-strategy.md](_temp-branching-strategy.md). Their associated scripts still expect those conventions and need reconciliation before use.
+The delivery base is always the latest local `demo` tip. With dependencies, pin each to a full SHA on its branch; each must descend from `demo` and from the previous dependency, and the last one becomes the feature base.
 
 ## Feature branch
 
-Use the confirmed project convention to name the issue branch. Review the complete issue delta against the confirmed base and target; report compatibility and actual verification before any remote write.
+Name the issue branch `<type>/<NN>-<slug>`, where `<type>` is one of `feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci` or `chore`, and `<NN>` is the local issue number. Review the complete issue delta against the confirmed base and target; report compatibility and actual verification before any remote write.

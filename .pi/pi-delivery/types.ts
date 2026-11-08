@@ -28,8 +28,8 @@ export interface Report {
 }
 export interface Preparation extends Report {
   pins?: {
-    productionTag: string;
-    productionBase: string;
+    baseBranch: string;
+    baseRevision: string;
     featureBase: string;
     featureBranch: string;
     integrationBranch?: string;

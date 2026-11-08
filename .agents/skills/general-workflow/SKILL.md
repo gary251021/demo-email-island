@@ -30,7 +30,7 @@ exactly one route:
 
 | User intent                                                            | Read and follow                                                 |
 | ---------------------------------------------------------------------- | --------------------------------------------------------------- |
-| Create, file, open, or publish one new issue                           | [Create an issue](references/project-create-issue.md)           |
+| Create, file, open, publish, or deepen/detail one issue or ticket      | [Create an issue](references/project-create-issue.md)           |
 | Implement, fix, build, handle, complete, or deliver one existing issue | [Implement and deliver an issue](references/implement-issue.md) |
 
 Creating an issue ends after its readback. Implementation or delivery requires

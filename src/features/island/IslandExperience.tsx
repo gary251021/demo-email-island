@@ -67,7 +67,9 @@ export function IslandExperience({
   }, [selection.subcategory]);
   return (
     <main
-      className={`island-experience${subcategory ? " has-mail-panel" : ""}`}
+      className={
+        subcategory ? "island-experience has-mail-panel" : "island-experience"
+      }
       aria-label={domain ? `${domain.name}板塊` : "郵件群島"}
     >
       <AccountNav

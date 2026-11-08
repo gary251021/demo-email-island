@@ -1,70 +1,30 @@
-# Code Design Validation
+# Code design validation
 
-## Decide whether code-fit proof is needed
+Validate design claims through read-only source inspection and authoritative
+documentation under the skill's [documentation-only boundary](../SKILL.md#documentation-only-boundary).
 
-Require the minimal code experiment and inline snippet preview only when the
-issue is complex enough that source inspection and existing patterns cannot
-confidently settle a consequential ownership, abstraction, dependency, contract
-or integration design choice. Also honor an explicit request for code-fit proof.
-Judge applicability by design uncertainty.
+## Establish evidence
 
-For a simple issue, skip both the experiment and snippet preview only after
-inspected sources establish the responsible owner, the existing implementation
-path to reuse and preservation of the relevant contracts; record that evidence
-and rationale. Pure documentation/workflow issues also skip the application
-experiment. The skip is the main agent's call. Decide UI-demo applicability
-separately through
-[UI design validation](04-ui-design-validation.md).
+- Record the source ref and SHA, responsible modules, existing callers and
+  contracts relevant to the choice.
+- Check installed dependency versions and official documentation or source for
+  the required capabilities, supported configuration and compatibility.
+- Distinguish verified existing behavior, documented library support, engineering
+  inference and runtime behavior that has not been tested in this project.
 
-When required, write the smallest real change that exercises the consequential
-design boundaries before previewing the issue. Use the experiment as design
-evidence; product implementation remains in the separate delivery workflow. A
-worker prepares the experiment and checks; the main agent accepts the evidence or
-returns material findings to alignment.
+When evidence cannot settle an integration question, record the uncertainty and
+the smallest delivery-time check with its expected observable result. Missing
+runtime proof does not authorize an experiment during issue creation. If the
+uncertainty prevents choosing an architecture, keep that decision open and
+present the concrete alternatives to the user.
 
-## Prepare an isolated baseline
+## Retain the design evidence
 
-Use a fresh temporary Git worktree at the policy-resolved source SHA. Record the
-source ref and SHA, applicable harness revision and prepared experiment base.
-Bring a separately configured workflow source into the disposable workspace only when the project's delivery policy requires it; identify preparation that changes a relevant application path. Compare the
-experiment against the prepared base so harness work is not attributed to the
-issue. Unresolved dependencies or preparation conflicts are blockers.
+Keep source references and unresolved questions in the checkpoint. In the issue,
+include only excerpts that explain interfaces, ownership and dependency
+direction. Identify existing excerpts by path and symbol; mark proposed snippets
+as design rather than executed code.
 
-Use declared dependencies and project commands; keep experiments isolated from
-the caller's checkout and shared branches.
-
-## Exercise the proposed design
-
-Put the minimal code in its intended application files and connect real imports,
-callers and types across every consequential boundary claimed as validated.
-
-Choose validation appropriate to the experiment and project contracts, including
-code quality checks. Report actual results, distinguishing new findings, baseline failures
-and verification limits. Return material findings to alignment and rerun affected
-proof before preview.
-
-The main agent accepts technical proof by inspecting the application experiment's
-connected change and actual check results against the claimed design boundaries.
-Return every new material behavior, ownership or contract choice exposed by the
-proof to the grilling decision flow for the user's selection.
-
-## Retain the evidence
-
-Retain enough evidence outside the repository to trace the experiment and its
-results through publication. In [the issue contract](02-issue-contract.md), include only final
-checked excerpts that explain ownership, interfaces, reuse and caller/dependency
-direction, labeled by file and symbol. Required algorithm behavior belongs in
-acceptance criteria; full diffs, logs and diagnostics remain internal.
-
-Keep the temporary implementation separate from delivery; clean up only this
-run's resources after publication.
-
-If the requirement necessarily changes an existing contract, preserve the
-failure evidence and specify the smallest adjustment to the configured workflow owner, its rationale and enforcement effect in `For Agent`; explain its practical
-effect in the human preview when approval depends on it. Track the adjustment
-as pending implementation and the failed check as unresolved.
-
-Resolve environment or prerequisite blockers during alignment. Follow the
-delivery policy and require revalidation
-when the implementation base changes a relevant owner, caller, contract or
-harness rule.
+Return to design when inspected evidence changes an accepted library, ownership
+or contract choice. Record implementation and runtime checks as future delivery
+work, and require revalidation when a relevant source baseline changes.

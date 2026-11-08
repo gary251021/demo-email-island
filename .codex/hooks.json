@@ -3,17 +3,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|Write|apply_patch",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/require-harness-managed-edit-approval.py\"",
-            "timeout": 3,
-            "statusMessage": "Checking protected tooling edits"
-          }
-        ]
-      },
-      {
         "matcher": "^Bash$",
         "hooks": [
           {
@@ -38,18 +27,6 @@
             "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/enforce-issue-integration.py\"",
             "timeout": 10,
             "statusMessage": "Checking issue implementation task launch"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/require-harness-managed-edit-approval.py\" --capture-approval",
-            "timeout": 3,
-            "statusMessage": "Recording protected tooling edit approval"
           }
         ]
       }

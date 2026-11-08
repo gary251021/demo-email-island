@@ -15,6 +15,10 @@ Carry the [review stopping outcome](04_review.md#stopping-rule) into the preview
 include completed round count, final axis statuses, and every unresolved T3 with
 its impact when accepted as ACCEPTED_WITH_T3. T1/T2 findings block review acceptance.
 
+Include the final visual scorecards (total and per-dimension scores per
+reference) and the E2E preservation result: pre-existing suite status, any
+changed or removed tests with their recorded reasons, and retained regression tests.
+
 Verify the complete issue acceptance criteria using the applicable project
 procedures and explicit issue exceptions. Record actual checks and outcomes in
 the delivery evidence and MR preview.
@@ -37,4 +41,4 @@ boundary and report any unresolved artifact correction.
 
 Stop after the preview with every branch local. Push the feature branch or create an MR only on a later explicit request.
 
-When publication is authorized, use the repository's configured provider to create the change request with the confirmed source and target. Retain the feature branch according to the project's policy.
+When publication is authorized, use the repository's configured provider to create the change request with the confirmed source and target. The target is `demo` under the [delivery policy](../../../../docs/agents/issue-delivery-policy.md) unless the issue records an override. Pass it explicitly (for example `gh pr create --base demo --head <source>`), independent of the remote's default branch. Before creating, confirm the remote has the target branch at the confirmed base SHA or a descendant; otherwise report the missing target instead of creating. After creating, read back the change request's target and source (for example `gh pr view --json baseRefName,headRefName,headRefOid`) and record that they match. Retain the feature branch according to the project's policy.

@@ -20,6 +20,10 @@ All generated images are raster concepts; sample counts and colors vary between 
 - Roads run along hex edges and turn at vertices.
 - Small buildings, small white rounded pill labels in dark sans-serif, compact tokens and controls. Broad calm water and clear terrain; avoid filling space with decoration.
 
+## Interface text
+
+Text names things and actions; appearance carries state. A disabled, selected or loading control shows only its own name — a greyed button reads `Google 登入`, never `Google 登入・尚未開放`. Explain a state only when the issue asks for it, in a tooltip or adjacent note. On-screen text is written for the player, so notes such as "示範用", "placeholder" or "TODO" stay out of visuals and UI.
+
 ## Color and detail
 
 Muted teal water, soft greens, sandy cream, ochre, clay, restrained coral or blue accents. Matte low-poly materials, simple geometric trees, gentle shadows. Avoid dense flowers, rocks, animals, waves, ornamental walls, oversized signs, and intricate textures.

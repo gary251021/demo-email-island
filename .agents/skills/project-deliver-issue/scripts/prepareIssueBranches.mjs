@@ -3,6 +3,8 @@
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
+export const BASE_BRANCH = "demo";
+
 export const BRANCH_TYPES = new Set([
   "feat",
   "fix",
@@ -65,7 +67,6 @@ function parseArguments(argv) {
     issue: values.issue,
     type: values.type,
     slug: values.slug,
-    productionTag: values["production-tag"],
     dependencies,
   };
 }
@@ -80,9 +81,6 @@ export function validatePrepareOptions(options) {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(options.slug)) {
     throw new Error("--slug must use lowercase words separated by hyphens");
   }
-  if (!/^v\d+\.\d+\.\d+$/.test(options.productionTag)) {
-    throw new Error("--production-tag must be a SemVer tag such as v1.2.3");
-  }
   for (const dependency of options.dependencies ?? []) {
     if (!dependency.branch || !/^[0-9a-f]{40}$/.test(dependency.sha)) {
       throw new Error("--dependency must use <branch>:<full-sha>");
@@ -96,14 +94,14 @@ export function prepareIssueBranches(options, cwd = process.cwd()) {
     throw new Error("The checkout must be clean");
   }
 
-  const productionBase = resolveCommit(cwd, options.productionTag);
-  if (!productionBase) {
-    throw new Error("The production tag must resolve to a commit");
+  const baseRevision = resolveCommit(cwd, `refs/heads/${BASE_BRANCH}`);
+  if (!baseRevision) {
+    throw new Error(`The local ${BASE_BRANCH} branch must exist`);
   }
 
   const dependencies = options.dependencies ?? [];
   // ponytail: dependency delivery is one linear list; add DAG merging when a real issue needs parallel roots.
-  let featureBase = productionBase;
+  let featureBase = baseRevision;
   for (const dependency of dependencies) {
     git(cwd, "check-ref-format", "--branch", dependency.branch);
     const branchRevision = resolveCommit(cwd, dependency.branch);
@@ -138,8 +136,8 @@ export function prepareIssueBranches(options, cwd = process.cwd()) {
   return {
     strategy: "direct",
     feature,
-    productionTag: options.productionTag,
-    productionBase,
+    baseBranch: BASE_BRANCH,
+    baseRevision,
     featureBase,
     dependencies,
   };
@@ -149,7 +147,8 @@ function usage() {
   return [
     "Usage:",
     "  prepareIssueBranches.mjs --issue <n> --type <type> --slug <slug>",
-    "    --production-tag <vX.Y.Z> [--dependency <branch>:<full-sha>]...",
+    "    [--dependency <branch>:<full-sha>]...",
+    `  Branches from the latest local ${BASE_BRANCH} tip.`,
   ].join("\n");
 }
 

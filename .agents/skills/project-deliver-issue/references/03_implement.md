@@ -13,6 +13,8 @@ Use sibling [03_implement.mjs](03_implement.mjs):
 
 ## Coordinator
 
+Apply the [coordinator boundary](../SKILL.md#coordinator-boundary) throughout this phase.
+
 Own shared discovery and [context preparation](02_handoff.md). Define acceptance
 scenarios, shared contracts, test ownership and external mock boundaries before
 dispatching each ticket. The implementer owns both feature code and acceptance
@@ -67,7 +69,7 @@ After the integrated acceptance E2E suite passes, add only warranted unit covera
 ## Ticket execution
 
 Run all commands in the assigned `Ticket checkout`. Validate start SHA,
-HEAD mode and production/dependency ancestry with `validateCheckout` before editing.
+HEAD mode and base/dependency ancestry with `validateCheckout` before editing.
 Use `validateTicket` only after the required ticket commit exists. Use the current
 assignment as the unit of work and the supplied context packet as the starting
 point. Reuse settled facts; investigate only a specific missing fact, changed

@@ -2,8 +2,9 @@
 
 ## Render the complete issue-document preview
 
-This previews the issue text and attachments. Validate interactive UI changes
-through [UI design validation](04-ui-design-validation.md) during alignment.
+This previews the issue text and attachments. Use
+[UI design validation](04-ui-design-validation.md) for static design evidence;
+executable interaction checks remain delivery work.
 
 Keep issue-document preview files outside the repository and render the complete
 current issue draft. Markdown remains the tracker source of truth. Use the bundled renderer:
@@ -16,6 +17,10 @@ node .agents/skills/project-create-issue/scripts/renderIssuePreview.mjs \
 
 Open the rendered HTML with available local tooling, or provide its absolute path if a viewer is unavailable. The main agent inspects the actual rendered body,
 images and Mermaid output and retains its association with the current draft.
+
+Show the current review-layer illustrations next to the preview so the user can
+check the issue text against the picture of the deliverable and architecture.
+Say that the illustrations are not published with the issue.
 
 ## Request confirmation
 
@@ -34,6 +39,8 @@ upload the same files and replace local references with tracker references.
 Mermaid stays as confirmed source. Include downloadable artifacts only when
 requested and included in the confirmed preview; retain other working artifacts internally.
 
-Create the issue through the configured tracker after approval, then read it back and verify its title, metadata, body and attachments match the confirmed preview. Resolve
+Create the issue through the configured tracker after approval — for the local
+Markdown tracker, overwrite the deepened ticket file in place, or write a new
+`issues/<NN>-<slug>.md` when there was no ticket — then read it back and verify its title, metadata, body and attachments match the confirmed preview. Resolve
 publication failures before reporting completion. Report the verified issue
 identifier and link, then stop.

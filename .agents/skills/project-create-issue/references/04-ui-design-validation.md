@@ -1,5 +1,11 @@
 # UI design validation
 
-Require a runnable preview when the user requests one or a material visual or interaction choice needs to be tried before specifying it. Inspect the existing UI, show the proposal with comparable data and viewport, exercise the interactions, and record what was observed. For simple changes, record the inspected current pattern that resolves the choice instead.
+Inspect available screenshots or an already-running UI, and present static
+mockups or diagrams with comparable data and viewport. Record the existing
+pattern or visual evidence that supports the proposed choice.
 
-Use the preview environment already configured for this repository. If none exists, report the missing capability and ask before installing software or establishing a new workspace. A static image supports a visual decision but does not prove interaction or integration.
+Follow the [documentation-only boundary](../SKILL.md#documentation-only-boundary).
+Record interactions requiring executable validation as delivery checks. A request
+to build a runnable preview belongs to a separate task outside issue creation.
+Static review illustrations support visual decisions without claiming
+interaction or integration proof.

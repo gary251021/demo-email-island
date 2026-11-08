@@ -5,7 +5,9 @@
 Use sibling [04_review.mjs](04_review.mjs) `prepareReview` with `base`,
 `reviewedHead`, and optional `repo`. It requires a clean checkout at the
 reviewed revision and a nonempty issue delta, then returns full SHAs, changed
-paths, commits and the diff command for reviewer dispatch. Run it again before
+paths, commits, the diff command and `testChanges` for reviewer dispatch.
+`testChanges` lists added, modified and deleted test files and added lines that
+skip or focus tests (`.skip`, `.only`, `.todo`, `xit`, `xdescribe`, `xtest`). Run it again before
 accepting a report to detect checkout changes. The coordinator evaluates the report.
 
 ### Full-issue review
@@ -48,8 +50,59 @@ outside `For Agent`. Both read the applicable preview/review specifications; the
 Spec reviewer independently inspects the named rendered preview states when a preview is configured and compares the corresponding application states at the same viewport. Use the project's available preview or a documented local fallback, with worker screenshots
 and reports as supporting evidence. Cite the story/state and observed mismatch
 in findings. Verify each required populated list, detail or editable state in
-its corresponding rendered state. Report missing access or required rendered
-evidence as BLOCKED for visual acceptance.
+its corresponding rendered state. When reference images exist, the Spec reviewer
+scores every reference/screenshot pair under [visual scoring](visual-scoring.md)
+and returns its scorecards; its findings enter the ledger with their scores.
+Report missing access or required rendered evidence as BLOCKED for visual acceptance.
+
+### E2E and regression preservation
+
+Pass `testChanges`, the coordinator's criterion → scenario → test map, the
+baseline/integrated results and the ledger's finding → regression-test links to
+both reviewers. The Spec reviewer owns this check; the Standards reviewer reports
+test-code defects it notices. Verify on the reviewed revision:
+
+- **Suite intact**: every E2E/acceptance test present at the feature base still
+  exists and runs. Compare the test list of the complete E2E suite at base and
+  reviewed head; a removed, renamed, skipped or focused test needs a recorded
+  reason that the issue contract supports.
+- **Expectations preserved**: each assigned scenario's test asserts the agreed
+  inputs, actions and expected outcome. Weakened assertions (removed `expect`,
+  looser matchers, broader snapshots, longer timeouts hiding races), changed
+  expected values, or a mock boundary moved inward past the agreed external
+  boundary are findings unless recorded as an evidenced test defect or an
+  explicitly changed requirement.
+- **Mapping matches reality**: every criterion's named test exists, asserts that
+  criterion and passed in the integrated run; baseline red/green evidence belongs
+  to the same test. A matching test name does not prove coverage.
+- **Clause traceability**: split each criterion into its individual Given, When
+  and Then clauses, including every listed variant, combination and negative
+  outcome. Map each clause to the test step or assertion at `path:line` that
+  drives or asserts it. Mark a clause PARTIAL when the test covers fewer cases or
+  a weaker property than the clause states (one of several invalid combinations,
+  one of several leaked fields, a tag check standing in for a layout rule).
+  Mark it MISSING when nothing asserts it. Each PARTIAL or MISSING Then clause is
+  an acceptance-test gap finding; grade its severity by the risk left untested,
+  with authorization, isolation and data-integrity gaps at T2 or above.
+- **Independent run**: the Spec reviewer runs the complete E2E suite and the
+  issue's unit tests on the reviewed SHA through the repository scripts. Direct
+  reports and artifacts outside the checkout, then confirm `git status --short`
+  stays empty. Record the command, exit code, pass/fail/skip/flaky counts and
+  log path. Worker and coordinator logs are supporting evidence only. When the
+  suite cannot run, report the E2E gate as BLOCKED with the exact error.
+- **Regressions retained**: each test added for a confirmed finding still exists,
+  still fails without its fix where that was recorded, and passes. A correction
+  that edits a regression or acceptance test to make it pass, instead of fixing
+  the code, is a T2 finding at least.
+- **Existing behavior**: the complete pre-existing E2E suite passes on the
+  reviewed revision; a newly failing pre-existing test is a regression finding.
+
+Report each violation with the test path/name, the base and reviewed versions of
+the assertion, and the missing justification. Return the clause traceability
+table in the review report, with columns criterion, clause, status
+(COVERED/PARTIAL/MISSING) and `path:line` evidence, plus the independent run
+record. Recheck all items on every correction round, because corrections most
+often erode tests; repeat the independent run on each new reviewed SHA.
 
 Wait for the complete report, then edit. Require separate Standards and
 Spec findings and PASS/FAIL/BLOCKED statuses for the pinned reviewed SHA. PASS
@@ -88,7 +141,9 @@ finding requires evidence of an incomplete fix or regression.
 
 For each follow-up, supply the previous and current reviewed SHAs, correction diff,
 updated verification and ledger. Reviewers verify the fixes and affected paths,
-including regressions and acceptance-test gaps. Keep the full issue diff available
+including regressions and acceptance-test gaps, rerun the
+[E2E and regression preservation](#e2e-and-regression-preservation) check against
+the previous reviewed revision, and rescore affected visual pairs. Keep the full issue diff available
 as context; broaden inspection when a correction's impact warrants it. A concrete
 new defect remains actionable even outside the correction diff; record its evidence
 and whether it was previously missed or introduced by the correction. Say unknown

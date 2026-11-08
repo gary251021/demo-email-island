@@ -270,8 +270,8 @@ export function registerDeliveryRuntime(
         ...common,
         pins: Type.Optional(
           Type.Object({
-            productionTag: text(),
-            productionBase: revision(),
+            baseBranch: text(),
+            baseRevision: revision(),
             featureBase: revision(),
             featureBranch: text(),
             integrationBranch: Type.Optional(text()),
