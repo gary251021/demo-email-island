@@ -22,7 +22,7 @@ type IslandSceneProps = {
 };
 
 const terrainColors: Record<DomainId, string> = {
-  "core-projects": "#a5b294",
+  "core-projects": "#c6e45d",
   "internal-team": "#94b19a",
   newsletters: "#c0bf88",
   "finance-bills": "#b7ba8f",
@@ -51,7 +51,7 @@ export function IslandScene(props: IslandSceneProps) {
             </p>
           }
         >
-          <color attach="background" args={["#75aaa9"]} />
+          <color attach="background" args={["#45afc4"]} />
           <SceneLabels {...props} portal={{ current: portal }} />
           <CameraFraming
             singleTile={Boolean(props.domain)}
@@ -78,7 +78,7 @@ export function IslandScene(props: IslandSceneProps) {
             receiveShadow
           >
             <planeGeometry args={[200, 200]} />
-            <meshBasicMaterial color="#75aaa9" />
+            <meshBasicMaterial color="#45afc4" />
           </mesh>
           {props.domain ? (
             <DomainBoard {...props} domain={props.domain} />

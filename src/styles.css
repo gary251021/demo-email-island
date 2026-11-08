@@ -3,7 +3,7 @@
 :root {
   font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   color: #243d3b;
-  background: #75aaa9;
+  background: #45afc4;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -55,7 +55,7 @@ a:focus-visible {
   height: 100dvh;
   min-height: 400px;
   overflow: hidden;
-  background: #75aaa9;
+  background: #45afc4;
 }
 .island-label {
   display: inline-flex;
@@ -63,7 +63,7 @@ a:focus-visible {
   justify-content: center;
   gap: 9px;
   margin: 0;
-  padding: 5px 15px;
+  padding: 4px 15px;
   border: 0;
   border-radius: 999px;
   color: #24352e;
