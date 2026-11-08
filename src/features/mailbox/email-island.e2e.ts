@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   test,
   expect,
@@ -9,6 +10,7 @@ import {
   readQ4,
   rpc,
   resultData,
+  subjectButton,
 } from "./acceptance-fixtures";
 import { chromium } from "@playwright/test";
 import { DatabaseSync } from "node:sqlite";
@@ -68,17 +70,17 @@ test("AC-2 repeat-entry-preserves-mailbox", async ({ page, app }) => {
 test("AC-3 domain-subcategory-mail-navigation", async ({ page, app }) => {
   await enter(page, app.url);
   await openQ4(page);
-  await page.getByRole("button", { name: /請確認報價項目/ }).click();
+  await subjectButton(page, "請確認報價項目").click();
   await expect(
-    page.getByText("林曉晴 <clare@example.com>", { exact: true }),
+    page
+      .getByRole("article", { name: "請確認報價項目", exact: true })
+      .getByText("林曉晴 <clare@example.com>", { exact: true }),
   ).toBeVisible();
   await expect(
     page.getByText("第四季的報價已整理完成", { exact: false }),
   ).toBeVisible();
   await page.getByRole("button", { name: "返回列表", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: /請確認報價項目/ }),
-  ).toBeVisible();
+  await expect(subjectButton(page, "請確認報價項目")).toBeVisible();
   await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
   await expect(page.getByRole("button", { name: /設計審批/ })).toBeVisible();
   await page.getByRole("button", { name: "返回群島", exact: true }).click();
@@ -106,9 +108,9 @@ test("AC-4 read-updates-all-unread-counts-once", async ({ page, app }) => {
   expect(before.subcategory.unreadCount).toBe(3);
   expect(before.domain?.unreadCount).toBe(4);
   await openQ4(page);
-  await page.getByRole("button", { name: /請確認報價項目/ }).hover();
+  await subjectButton(page, "請確認報價項目").hover();
   expect((await q4(page)).subcategory.unreadCount).toBe(3);
-  await page.getByRole("button", { name: /請確認報價項目/ }).click();
+  await subjectButton(page, "請確認報價項目").click();
   await expect(
     page.getByText("第四季的報價已整理完成", { exact: false }),
   ).toBeVisible();
@@ -122,7 +124,7 @@ test("AC-4 read-updates-all-unread-counts-once", async ({ page, app }) => {
       ?.unreadCount,
   ).toBe(1);
   await page.getByRole("button", { name: "返回列表", exact: true }).click();
-  const readRow = page.getByRole("button", { name: /請確認報價項目/ });
+  const readRow = subjectButton(page, "請確認報價項目");
   await expect(readRow).not.toContainText("未讀");
   await readRow.click();
   await expect(
@@ -149,7 +151,7 @@ test("AC-5 zero-unread-keeps-navigation", async ({ page, app }) => {
     )
     .toBe(0);
   await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
-  await expect(page.getByRole("button", { name: /設計審批/ })).toContainText(
+  await expect(page.getByLabel("設計審批未讀 0", { exact: true })).toHaveText(
     "未讀 0",
   );
   await page.getByRole("button", { name: /設計審批/ }).click();
@@ -290,7 +292,7 @@ test("AC-9 session-daily-renewal", async ({ page, app }) => {
     .prepare('SELECT "expiresAt" FROM session WHERE "userId" = ?')
     .get(owner.ownerKey);
   database.close();
-  const originalExpiry = Number(old?.expiresAt);
+  const originalExpiry = Date.parse(z.iso.datetime().parse(old?.expiresAt));
   expect(originalExpiry).toBeGreaterThan(Date.now());
   app.time(new Date(Date.now() + 2 * 86_400_000));
   const refresh = page.waitForResponse(
@@ -305,7 +307,9 @@ test("AC-9 session-daily-renewal", async ({ page, app }) => {
     .prepare('SELECT "expiresAt" FROM session WHERE "userId" = ?')
     .get(owner.ownerKey);
   check.close();
-  expect(Number(renewed?.expiresAt)).toBeGreaterThan(originalExpiry);
+  expect(
+    Date.parse(z.iso.datetime().parse(renewed?.expiresAt)),
+  ).toBeGreaterThan(originalExpiry);
   app.time(new Date(originalExpiry + 86_400_000));
   await page.reload();
   expect(await identity(page)).toEqual(owner);
@@ -393,7 +397,7 @@ test("AC-11 seed-and-read-persistence-failure", async ({ page, app }) => {
     "CREATE TRIGGER reject_read BEFORE UPDATE OF read_at ON mails BEGIN SELECT RAISE(ABORT, 'isolated read failure'); END;",
   );
   await openQ4(page);
-  await page.getByRole("button", { name: /請確認報價項目/ }).click();
+  await subjectButton(page, "請確認報價項目").click();
   await expect(
     page.getByText("第四季的報價已整理完成", { exact: false }),
   ).toBeVisible();
@@ -409,7 +413,11 @@ test("AC-11 seed-and-read-persistence-failure", async ({ page, app }) => {
   expect((await q4(page)).mail.readAt).toBe(saved.mail.readAt);
 });
 
-test("AC-12 keyboard-and-scene-navigation", async ({ page, app }) => {
+test("AC-12 keyboard-and-scene-navigation", async ({
+  page,
+  app,
+  browserErrors,
+}) => {
   await enter(page, app.url);
   const core = page.getByRole("button", { name: /核心專案/ });
   await core.focus();
@@ -423,7 +431,13 @@ test("AC-12 keyboard-and-scene-navigation", async ({ page, app }) => {
   await page.getByRole("button", { name: "返回群島", exact: true }).click();
   // Click the projected building, not its HTML label, using scene's public screen anchor.
   const building = page.locator('[data-building="core-projects"]');
-  await building.click();
+  const box = await building.boundingBox();
+  if (!box) throw new Error("Missing projected building anchor");
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.getByRole("button", { name: /Q4 報價/ })).toBeVisible();
   await expect(page.locator("nav, aside, footer")).toHaveCount(0);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(page.getByRole("button", { name: /Q4 報價/ })).toBeVisible();
+  await page.screenshot();
+  expect(browserErrors).toEqual([]);
 });

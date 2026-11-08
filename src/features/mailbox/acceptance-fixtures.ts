@@ -6,11 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { once } from "node:events";
-import {
-  mailDetailSchema,
-  mailSummarySchema,
-  overviewSchema,
-} from "../../lib/mailbox";
+import { mailSummarySchema, overviewSchema } from "../../lib/mailbox";
 import { identitySchema } from "../../lib/session";
 
 const transportSource = `import {getIdentity} from '/src/features/session/session.functions.ts';
@@ -94,6 +90,11 @@ export async function q4(page: Page) {
     mail,
   };
 }
+export function subjectButton(page: Page, subject: string) {
+  return page
+    .getByRole("button")
+    .filter({ has: page.getByText(subject, { exact: true }) });
+}
 export async function enter(page: Page, url: string) {
   await page.goto(url);
   await expect(
@@ -109,14 +110,11 @@ export async function openQ4(page: Page) {
 }
 export async function readQ4(page: Page) {
   await openQ4(page);
-  await page.getByRole("button", { name: /請確認報價項目/ }).click();
+  await subjectButton(page, "請確認報價項目").click();
   await expect(
     page.getByText("第四季的報價已整理完成", { exact: false }),
   ).toBeVisible();
   await expect.poll(async () => (await q4(page)).mail.readAt).not.toBeNull();
-}
-export async function details(page: Page, input: unknown) {
-  return mailDetailSchema.parse(resultData(await rpc(page, "getMail", input)));
 }
 
 type App = {
@@ -128,7 +126,31 @@ type App = {
   withContext: (context: BrowserContext) => Promise<Page>;
 };
 
-export const test = base.extend<{ app: App }>({
+export const test = base.extend<{ app: App; browserErrors: string[] }>({
+  page: async ({ page }, providePage, testInfo) => {
+    const messages: string[] = [];
+    page.on("console", (message) => {
+      messages.push(`${message.type()}: ${message.text()}`);
+    });
+    page.on("pageerror", (error) => {
+      messages.push(`pageerror: ${error.message}`);
+    });
+    await providePage(page);
+    await testInfo.attach("browser-console.log", {
+      body: messages.join("\n"),
+      contentType: "text/plain",
+    });
+  },
+  browserErrors: async ({ page }, provideErrors) => {
+    const errors: string[] = [];
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
+    page.on("pageerror", (error) => {
+      errors.push(error.message);
+    });
+    await provideErrors(errors);
+  },
   // Playwright requires a destructured fixture argument.
   // eslint-disable-next-line no-empty-pattern
   app: async ({}, provideApp, testInfo) => {
@@ -147,7 +169,8 @@ constructor(...args){super(...(args.length?args:[now()]));}
 static now(){return now();}
 };`,
     );
-    const port = 3210 + testInfo.workerIndex;
+    const port =
+      Number(process.env.EMAIL_ISLAND_E2E_PORT ?? 3210) + testInfo.workerIndex;
     const url = `http://127.0.0.1:${port}`;
     let output = "";
     const launch = () => {
@@ -166,6 +189,7 @@ static now(){return now();}
           env: {
             ...process.env,
             EMAIL_ISLAND_DB_PATH: dbPath,
+            EMAIL_ISLAND_VITE_CACHE: join(directory, "vite-cache"),
             BETTER_AUTH_URL: url,
             BETTER_AUTH_SECRET:
               "acceptance-only-local-secret-of-at-least-32-characters",
@@ -198,6 +222,7 @@ static now(){return now();}
         .toBe(200);
     }
     async function stop() {
+      if (child.exitCode !== null || child.signalCode !== null) return;
       const ended = once(child, "exit");
       child.kill("SIGTERM");
       await ended;

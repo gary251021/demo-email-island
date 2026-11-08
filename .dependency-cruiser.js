@@ -124,8 +124,7 @@ module.exports = {
     {
       name: "no-barrel-exports",
       severity: "error",
-      comment:
-        "Avoid pure barrel/re-export modules.",
+      comment: "Avoid pure barrel/re-export modules.",
       from: {
         path: "^src/",
       },
@@ -142,7 +141,7 @@ module.exports = {
       severity: "error",
       from: {},
       to: {
-        path: "[.](?:spec|test)[.](?:js|mjs|cjs|jsx|ts|mts|cts|tsx)$",
+        path: "[.](?:spec|test|e2e)[.](?:js|mjs|cjs|jsx|ts|mts|cts|tsx)$",
       },
     },
     {
@@ -156,7 +155,10 @@ module.exports = {
         "from.pathNot re of the not-to-dev-dep rule in the dependency-cruiser configuration",
       from: {
         path: "^src/",
-        pathNot: "[.](?:spec|test)[.](?:js|mjs|cjs|jsx|ts|mts|cts|tsx)$",
+        pathNot: [
+          "[.](?:spec|test|e2e)[.](?:js|mjs|cjs|jsx|ts|mts|cts|tsx)$",
+          "^src/features/mailbox/acceptance-fixtures[.]ts$",
+        ],
       },
       to: {
         dependencyTypes: ["npm-dev"],

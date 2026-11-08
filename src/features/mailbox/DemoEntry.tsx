@@ -1,11 +1,12 @@
 import { useState } from "react";
-import { useNavigate } from "@tanstack/react-router";
+import { useHydrated, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../session/auth-client";
 import { getIdentity } from "../session/session.functions";
 import { startDemo } from "./mailbox.functions";
 
 export default function DemoEntry() {
   const navigate = useNavigate();
+  const interactive = useHydrated();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(false);
   async function enter() {
@@ -36,7 +37,7 @@ export default function DemoEntry() {
         <p>讓每一封來信，找到自己的位置。</p>
         <button
           className="entry-primary"
-          disabled={pending}
+          disabled={!interactive || pending}
           onClick={() => void enter()}
         >
           {error ? "重試" : "進入群島"}
