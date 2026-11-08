@@ -11,4 +11,5 @@ __pycache__/
 
 .data/
 playwright-report/
+blob-report/
 test-results/
