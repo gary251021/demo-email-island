@@ -45,7 +45,7 @@ jobs:
             echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
             echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
           } >> "$GITHUB_ENV"
-          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://github.com/redis/redis/archive/refs/tags/8.10.3.tar.gz
           printf '%s  %s\n' '85ae62e175cc76f638015fa18cb384b549b6808a765425d9e9d47466f69532ea' "$test_runtime/redis.tar.gz" | sha256sum --check -
           tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
           make -C "$test_runtime/redis-8.10.3" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
@@ -113,7 +113,7 @@ jobs:
             echo "EMAIL_ISLAND_E2E_OUTPUT=$test_runtime/results/artifacts"
             echo "EMAIL_ISLAND_NAV_EVIDENCE_DIR=$test_runtime/results/nav"
           } >> "$GITHUB_ENV"
-          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://download.redis.io/releases/redis-8.10.3.tar.gz
+          curl --fail --location --retry 3 --output "$test_runtime/redis.tar.gz" https://github.com/redis/redis/archive/refs/tags/8.10.3.tar.gz
           printf '%s  %s\n' '85ae62e175cc76f638015fa18cb384b549b6808a765425d9e9d47466f69532ea' "$test_runtime/redis.tar.gz" | sha256sum --check -
           tar -xzf "$test_runtime/redis.tar.gz" -C "$test_runtime"
           make -C "$test_runtime/redis-8.10.3" -j2 redis-server redis-cli > "$test_runtime/redis-build.log" 2>&1
