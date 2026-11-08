@@ -63,8 +63,8 @@ both reviewers. The Spec reviewer owns this check; the Standards reviewer report
 test-code defects it notices. Verify on the reviewed revision:
 
 - **Suite intact**: every E2E/acceptance test present at the feature base still
-  exists and runs. Compare the test list of the complete E2E suite at base and
-  reviewed head; a removed, renamed, skipped or focused test needs a recorded
+  exists and runs. Compare `npx playwright test --list` output at base and
+  reviewed head (listing only, no full run); a removed, renamed, skipped or focused test needs a recorded
   reason that the issue contract supports.
 - **Expectations preserved**: each assigned scenario's test asserts the agreed
   inputs, actions and expected outcome. Weakened assertions (removed `expect`,
@@ -84,8 +84,9 @@ test-code defects it notices. Verify on the reviewed revision:
   Mark it MISSING when nothing asserts it. Each PARTIAL or MISSING Then clause is
   an acceptance-test gap finding; grade its severity by the risk left untested,
   with authorization, isolation and data-integrity gaps at T2 or above.
-- **Independent run**: the Spec reviewer runs the complete E2E suite and the
-  issue's unit tests on the reviewed SHA through the repository scripts. Direct
+- **Independent run**: the Spec reviewer runs the focused E2E and unit scope
+  ([local and CI test scope](../../../../docs/agents/acceptance-testing.md#local-and-ci-test-scope))
+  on the reviewed SHA through the repository scripts; never the complete suite. Direct
   reports and artifacts outside the checkout, then confirm `git status --short`
   stays empty. Record the command, exit code, pass/fail/skip/flaky counts and
   log path. Worker and coordinator logs are supporting evidence only. When the
@@ -94,8 +95,9 @@ test-code defects it notices. Verify on the reviewed revision:
   still fails without its fix where that was recorded, and passes. A correction
   that edits a regression or acceptance test to make it pass, instead of fixing
   the code, is a T2 finding at least.
-- **Existing behavior**: the complete pre-existing E2E suite passes on the
-  reviewed revision; a newly failing pre-existing test is a regression finding.
+- **Existing behavior**: the CI `Lint and tests` check passes on the reviewed
+  revision's PR; a newly failing pre-existing test there is a regression finding.
+  Until CI has run, report this item as PENDING_CI, not as a local full run.
 
 Report each violation with the test path/name, the base and reviewed versions of
 the assertion, and the missing justification. Return the clause traceability
@@ -143,7 +145,7 @@ For each follow-up, supply the previous and current reviewed SHAs, correction di
 updated verification and ledger. Reviewers verify the fixes and affected paths,
 including regressions and acceptance-test gaps, rerun the
 [E2E and regression preservation](#e2e-and-regression-preservation) check against
-the previous reviewed revision, and rescore affected visual pairs. Keep the full issue diff available
+the previous reviewed revision using only the specs the correction can affect, and rescore affected visual pairs. Keep the full issue diff available
 as context; broaden inspection when a correction's impact warrants it. A concrete
 new defect remains actionable even outside the correction diff; record its evidence
 and whether it was previously missed or introduced by the correction. Say unknown

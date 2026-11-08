@@ -22,12 +22,34 @@ roles, labels and names over CSS classes, DOM nesting or internal component APIs
    records separate baseline/integrated evidence below. Keep assertions fixed;
    change them only for an evidenced test defect or explicitly changed requirement,
    recording the reason.
-4. Integrate the owned code/test commits and run the complete acceptance E2E suite.
+4. Integrate the owned code/test commits and run the focused acceptance E2E scope
+   (see [Local and CI test scope](#local-and-ci-test-scope)).
    Return behavior and test/setup defects to their implementer with the
    evidence/contract. An independent verifier may execute/assess results; it is
    not a separate test author.
 5. After acceptance E2E passes, add focused unit coverage only for meaningful logic
    or regression risks needing it. Preserve existing tests.
+
+## Local and CI test scope
+
+Agents run only focused tests locally. The complete E2E suite runs only in GitHub
+Actions (`.github/workflows/ci.yml`, job `Lint and tests`) on the pull request.
+
+- **Focused E2E**: the `*.e2e.ts` files that hold the issue's assigned scenarios,
+  plus any existing spec file that exercises a source module the issue changed.
+  Run them by path, e.g. `npm run test:e2e -- src/features/x/x.e2e.ts`; use
+  `--grep` to rerun a single failing scenario.
+- **Focused unit**: `npm test -- --run --changed <base-sha>` or
+  `npx vitest related --run <changed files>`.
+- **Cheap whole-repo checks stay local**: `npm run typecheck`, `npm run lint`,
+  `npm run lint:deps`, and `npx playwright test --list` to compare the test list.
+- **Never run `npm run test:e2e` without file arguments locally**, including for
+  baseline, integration, review or correction rounds. Do not rerun focused specs
+  that a correction cannot affect.
+- **Full-suite gate**: after the PR is opened or updated, wait for the CI
+  `Lint and tests` check (`gh pr checks <pr> --watch`). Record its run URL and
+  result as the complete-suite evidence. A red CI run is a regression finding
+  returned to the implementer; merge requires it green.
 
 The coordinator resolves contract gaps and coverage. Implementers own code, tests,
 fixtures and assigned setup together; both independent review axes assess code and
