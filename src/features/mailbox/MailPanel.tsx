@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ListMailInput, MailInput, MailView } from "../../lib/mailbox";
 import { mailListQueryOptions } from "./mailbox.queries";
@@ -7,6 +7,7 @@ import { MailActions } from "./MailActions";
 import { useMailReader } from "./useMailReader";
 
 type MailPanelProps = {
+  renderCategoryEditor?: (mailId: string) => ReactNode;
   ownerKey: string;
   input: ListMailInput;
   name: string;
@@ -75,6 +76,7 @@ export function MailPanel(props: MailPanelProps) {
             subcategoryId: props.input.subcategoryId,
             mailId: props.mailId,
           }}
+          categoryEditor={props.renderCategoryEditor?.(props.mailId)}
           onBack={props.onBack}
           onUnauthenticated={props.onUnauthenticated}
         />
@@ -155,6 +157,7 @@ function MailList({
 }
 
 type MailBodyProps = {
+  categoryEditor?: ReactNode;
   ownerKey: string;
   input: MailInput;
   onBack: () => void;
@@ -162,6 +165,7 @@ type MailBodyProps = {
 };
 
 function MailBody({
+  categoryEditor,
   ownerKey,
   input,
   onBack,
@@ -186,6 +190,7 @@ function MailBody({
       {detail.isSuccess && (
         <article aria-label={detail.data.subject}>
           <h2>{detail.data.subject}</h2>
+          {categoryEditor}
           <div className="mail-envelope">
             <p>{detail.data.sender}</p>
             <time dateTime={detail.data.receivedAt}>

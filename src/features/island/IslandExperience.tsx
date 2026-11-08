@@ -1,3 +1,5 @@
+import { ClassificationStatus } from "../classifier/ClassificationStatus";
+import { CategoryEditor } from "../classifier/CategoryEditor";
 import { useCallback, useEffect, useRef } from "react";
 import { ClientOnly, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -76,6 +78,7 @@ export function IslandExperience({
       }
       aria-label={domain ? `${domain.name}板塊` : "郵件群島"}
     >
+      <ClassificationStatus ownerKey={ownerKey} />
       <AccountNav
         action="登出"
         pending={logout.isPending}
@@ -133,6 +136,22 @@ export function IslandExperience({
       )}
       {domain && subcategory && (
         <MailPanel
+          renderCategoryEditor={(mailId) => (
+            <CategoryEditor
+              ownerKey={ownerKey}
+              mailId={mailId}
+              currentCategory={subcategory.id}
+              overview={query.data}
+              onSaved={(domainId, subcategoryId) =>
+                onNavigate({
+                  ...selection,
+                  domain: domainId,
+                  subcategory: subcategoryId,
+                  mail: mailId,
+                })
+              }
+            />
+          )}
           ownerKey={ownerKey}
           name={subcategory.name}
           input={{

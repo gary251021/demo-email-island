@@ -18,7 +18,9 @@
     "knip": "knip",
     "test:e2e": "playwright test",
     "format:check": "prettier --check src/",
-    "auth:generate": "auth generate --config scripts/auth-schema.config.ts --output src/lib/auth-schema.sql --yes"
+    "auth:generate": "auth generate --config scripts/auth-schema.config.ts --output src/lib/auth-schema.sql --yes",
+    "worker": "node --import tsx src/features/classifier/worker.server.ts",
+    "jev:fixture": "node --import tsx src/features/classifier/jev-fixture.server.ts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -27,8 +29,11 @@
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-router-ssr-query": "^1.167.3",
     "@tanstack/react-start": "^1.169.4",
+    "@typesafe-ai/sdk": "0.7.0",
     "better-auth": "1.7.18",
+    "bullmq": "6.7.2",
     "clsx": "^2.1.1",
+    "ioredis": "6.0.0",
     "react": "~19.3.1",
     "react-dom": "~19.3.1",
     "srvx": "1.0.8",

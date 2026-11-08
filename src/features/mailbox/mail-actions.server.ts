@@ -1,4 +1,4 @@
-import { db } from "../../lib/db.server";
+import { db, transaction } from "../../lib/db.server";
 import { replySchema } from "../../lib/mailbox";
 import type {
   MailInput,
@@ -8,17 +8,6 @@ import type {
 } from "../../lib/mailbox";
 import { readMail, readActiveUnreadIds } from "./mailbox.server";
 
-function transaction<T>(action: () => T): T {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const result = action();
-    db.exec("COMMIT");
-    return result;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
-}
 export function saveReply(ownerKey: string, input: ReplyInput) {
   return transaction(() => {
     readMail(ownerKey, input);

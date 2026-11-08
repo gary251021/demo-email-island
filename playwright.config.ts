@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: "./src/features",
   testMatch: "**/*.e2e.ts",
   workers: 1,
+  outputDir: process.env.EMAIL_ISLAND_E2E_OUTPUT ?? "test-results/artifacts",
   // Tests are independent (own app, port and DB per test), so CI shards split by test, not file.
   fullyParallel: Boolean(process.env.CI),
   timeout: 60_000,
@@ -16,5 +17,15 @@ export default defineConfig({
   },
   reporter: process.env.CI
     ? [["list"], ["blob"]]
-    : [["list"], ["json", { outputFile: "test-results/acceptance.json" }]],
+    : [
+        ["list"],
+        [
+          "json",
+          {
+            outputFile:
+              process.env.EMAIL_ISLAND_E2E_REPORT ??
+              "test-results/acceptance.json",
+          },
+        ],
+      ],
 });

@@ -102,7 +102,7 @@ test("archived story keeps ten unread without an active city timeline", async ({
   await page.getByRole("button", { name: "郵件", exact: true }).click();
   await expect.poll(() => intercepted).toBe(true);
   await expect(timeline).toHaveCount(0);
-  await expect(page.getByRole("status")).toContainText("正在載入郵件");
+  await expect(page.getByText("正在載入郵件…", { exact: true })).toBeVisible();
   release();
   await expect(page.getByRole("alert")).toContainText("郵件載入失敗");
   await expect(timeline).toHaveCount(0);
