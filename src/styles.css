@@ -454,3 +454,29 @@ button.island-label:hover {
     transition-duration: 0.01ms !important;
   }
 }
+
+.scene-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+.scene-html {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  pointer-events: none;
+}
+.scene-label-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.scene-label-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.scene-label-position button {
+  pointer-events: auto;
+}
