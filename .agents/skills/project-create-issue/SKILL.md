@@ -1,6 +1,6 @@
 ---
 name: project-create-issue
-description: Create one GitLab issue for a feature or bug in this application, with context from related projects. Works best when you know the relevant business context and can share even a rough desired change or observed problem; details and technical feasibility may remain unresolved.
+description: Draft one tracked issue for a feature or bug using the repository's configured tracker and product context. Use when the user asks to create or publish an issue; clarify unresolved behavior before publication.
 metadata:
   routed_by: general-workflow
   configured_by: general-setup-workflow
@@ -8,9 +8,7 @@ metadata:
 
 # Project Create Issue
 
-Create exactly one issue. Temporary code for design validation belongs to
-alignment; product implementation and issue delivery are separate requests.
-Read each stage only when entering it.
+Create exactly one issue using the tracker configured for this repository. Read [tracker guidance](../../../docs/agents/issue-tracker.md) and [delivery policy](../../../docs/agents/issue-delivery-policy.md) first. If tracker or delivery inputs needed for publication are not configured, keep the work as a local draft and ask for the missing project decision. Temporary code for design validation belongs to alignment; implementation is a separate request. Read each stage only when entering it.
 
 Create the [durable issue checkpoint](references/00-run-checkpoint.md) before
 consultation and keep the same run through every phase.
@@ -30,13 +28,12 @@ stage only when entering it.
    [architectural-choice applicability](references/01-investigate-align.md#choose-an-architectural-approach),
    using [code-design validation](references/03-code-design-validation.md) or
    [UI-design validation](references/04-ui-design-validation.md) when applicable.
-   Use the standalone Storybook workspace for every required UI demo; follow
-   that reference for readiness checks, issue variants and handoff.
+   Use the repository's configured preview environment for a required UI demo; follow that reference for readiness checks and handoff.
    Enter drafting when required architecture choices are selected, validation
    applicability is justified from evidence, every required proof is accepted,
    the user confirms the resulting shared understanding, and no material behavior
    or contract choice remains unresolved.
-4. Read Matt Pocock's `to-tickets` skill for outcome-based acceptance criteria,
+4. Use available issue-writing guidance for outcome-based acceptance criteria,
    then [draft the issue contract](references/02-issue-contract.md). Enter preview
    when the current human and agent contract retains the complete agreed scope
    and corrections and passes the human-relevance review in that reference.
@@ -63,20 +60,11 @@ Finish with the confirmed issue's identifier and link, then stop.
 
 ## Codex delegation
 
-The main agent owns consultation, alignment, synthesis, artifact acceptance and
-publication. Use fresh `gpt-6-luna` explorers at `xhigh` for independent
-read-only discovery and fresh workers at the same settings for code-fit work,
-UI artifacts, drafting and rendering. Give each agent a bounded question or
-output, the evidence baseline, current requirements and access to the checkpoint;
-inspect returned evidence before accepting it. Agents report findings; the main agent settles material
-decisions and validation applicability, and publishes the issue.
-If required delegation is unavailable, leave the work pending and report it;
-use another model or execution path only with the user's authorization.
+The main agent owns consultation, alignment, synthesis, artifact acceptance and publication. When delegation is authorized, choose available models and give each worker a bounded question, the evidence baseline, current requirements and access to the checkpoint. Inspect returned evidence before accepting it. The main agent settles material decisions and publishes only after approval. If a required capability is unavailable, report the blocker.
 
 ## Consult on the feature
 
-The main agent reads the [product overview](../../../docs/product-overview.md)
-and helps the user express incomplete ideas or details they have but cannot yet
+The main agent locates the current project's product specification and helps the user express incomplete ideas or details they have but cannot yet
 articulate, using concrete examples or choices. Use Matt Pocock's `grilling`
 skill for this product consultation: ask the currently answerable questions in
 rounds, give recommendations, and wait for the user's answers. Scope the discussion

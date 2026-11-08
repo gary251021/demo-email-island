@@ -7,8 +7,8 @@
 - [Project architecture](docs/agents/project-architecture.md) routes frontend,
   and backend ownership and dependency rules.
 - [Test principles](docs/agents/architecture/test-principles.md) own test scope
-  and style; [verification](AGENTS.md#verification) owns required checks and
-  rendered-state or journey evidence.
+  and style; [acceptance testing](docs/agents/acceptance-testing.md) owns
+  rendered-state and journey evidence when applicable.
 
 ## Existing-pattern consistency
 

@@ -45,9 +45,7 @@ the existing Standards review and recheck affected decisions during corrections.
 For UI changes, pass the [existing UI references](02_handoff.md#existing-ui-references)
 to the review coordinator and its Spec reviewer, including issue-linked references
 outside `For Agent`. Both read the applicable preview/review specifications; the
-Spec reviewer independently inspects the named rendered Storybook states and
-compares the corresponding application states at the same desktop viewport. Use the
-remote build or the issue's documented local fallback, with worker screenshots
+Spec reviewer independently inspects the named rendered preview states when a preview is configured and compares the corresponding application states at the same viewport. Use the project's available preview or a documented local fallback, with worker screenshots
 and reports as supporting evidence. Cite the story/state and observed mismatch
 in findings. Verify each required populated list, detail or editable state in
 its corresponding rendered state. Report missing access or required rendered

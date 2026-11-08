@@ -33,8 +33,7 @@ Locate a sibling project beside the current checkout first; otherwise use Git
 metadata to find the original repository and search beside it. For third-party
 APIs, use the provider's current official documentation. If the owner cannot be
 reached, tell the user what cannot be established and continue work that does
-not depend on it. Product intent comes from [`CONTEXT.md`](../../CONTEXT.md),
-relevant ADRs/specifications, and confirmed human requirements.
+not depend on it. Product intent comes from the current project's specifications, any adopted decisions, and confirmed human requirements. Locate those documents before citing them.
 
 ## Investigation method
 

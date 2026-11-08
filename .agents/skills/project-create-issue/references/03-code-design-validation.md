@@ -26,8 +26,7 @@ returns material findings to alignment.
 
 Use a fresh temporary Git worktree at the policy-resolved source SHA. Record the
 source ref and SHA, applicable harness revision and prepared experiment base.
-Bring the policy-selected harness into the disposable workspace when needed;
-identify preparation that changes a relevant application path. Compare the
+Bring a separately configured workflow source into the disposable workspace only when the project's delivery policy requires it; identify preparation that changes a relevant application path. Compare the
 experiment against the prepared base so harness work is not attributed to the
 issue. Unresolved dependencies or preparation conflicts are blockers.
 
@@ -61,8 +60,7 @@ Keep the temporary implementation separate from delivery; clean up only this
 run's resources after publication.
 
 If the requirement necessarily changes an existing contract, preserve the
-failure evidence and specify the smallest required `feature/harness` adjustment,
-its rationale and enforcement effect in `For Agent`; explain its practical
+failure evidence and specify the smallest adjustment to the configured workflow owner, its rationale and enforcement effect in `For Agent`; explain its practical
 effect in the human preview when approval depends on it. Track the adjustment
 as pending implementation and the failed check as unresolved.
 

@@ -1,7 +1,7 @@
 interface:
   display_name: "Project Deliver Issue"
   short_description: "Prepare, implement, and preview an issue MR"
-  default_prompt: "Use $project-deliver-issue to finish GitLab issue #4 through its merge-request preview."
+  default_prompt: "Use $project-deliver-issue to work on the requested tracked issue using this repository's confirmed delivery policy; stop at the approved preview boundary."
 
 policy:
   allow_implicit_invocation: false

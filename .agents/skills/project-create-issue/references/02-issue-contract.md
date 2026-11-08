@@ -1,6 +1,6 @@
 # Issue Contract
 
-Apply the user-facing generation rule in `AGENTS.md` and draft one English issue.
+Apply the user-facing generation rule in `AGENTS.md` and draft one issue in the user's requested language.
 Use the shortest body that preserves intent, affected actor and surface,
 verified current behavior, expected result, scope, domain meaning, dependencies
 and testable completion. Include investigation evidence only when it prevents a
@@ -8,14 +8,7 @@ plausible wrong interpretation. Repository guidance and inspection supply
 routine engineering rules, locations, helpers and commands; include only
 issue-specific exceptions or proof requirements.
 
-Use the exact delivery branch type as the semantic classification. Select from
-[delivery's branch types](../../project-deliver-issue/references/branching-strategy.md#feature-branch),
-enforced by `BRANCH_TYPES` in the
-[preparation script](../../project-deliver-issue/scripts/prepareIssueBranches.mjs):
-`feat`, `fix`, `refactor`, `perf`, `docs`, `test`, `build`, `ci`, or `chore`.
-Select by the issue's primary responsibility; use `fix` for correcting behavior
-that violates a known expectation. Preserve this exact value in the preview and
-agent delivery contract so preparation uses it without translation.
+Classify the issue by its primary responsibility. Use a branch type only when the repository's [branching policy](../../project-deliver-issue/references/branching-strategy.md#feature-branch) is configured, and keep the chosen value consistent in the issue and delivery evidence.
 
 When the cause or remedy remains unknown, retain the investigation question in
 alignment. Investigation is not an additional classification candidate.
@@ -32,7 +25,7 @@ issue is genuinely cross-cutting:
 
 ```yaml
 scope_list:
-  # Add product-area scopes here as CONTEXT.md defines the domain.
+  # Select scopes from the product vocabulary confirmed for this project.
   - General
   - UI
   - UX
@@ -50,17 +43,7 @@ scope_list:
   - Infrastructure
 ```
 
-Resolve values through the issue-delivery policy. The source SHA identifies the
-agreed design snapshot; harness and prepared-base SHAs remain internal evidence.
-End `For Agent` with:
-
-```markdown
-### Delivery
-
-- Production base tag: `<vX.Y.Z>`
-- Development target: `<configured development target>`
-- Production path: `<configured production path>`
-```
+Resolve delivery fields through the [delivery policy](../../../../docs/agents/issue-delivery-policy.md). Include an actual base ref/SHA, target and dependency revisions only when confirmed; keep speculative branch names out of the published issue. The source SHA identifies the agreed design snapshot.
 
 ## For Human
 
@@ -113,19 +96,17 @@ visible labels, actions and representative outcomes.>
 
 <Only when another issue supplies required behavior:>
 
-1. Production root: `<production path>` at `<production tag>`
-2. Coupled dependency: `#<issue>` — `<feature branch>`
-3. This issue: `#<issue>` — `<feature branch>`
-4. Merge-request target: `<target branch>`
+1. Confirmed base: `<ref and full SHA>`
+2. Coupled dependency: `<issue and confirmed revision>`
+3. This issue: `<issue and feature branch, if configured>`
+4. Change-request target: `<confirmed target, if configured>`
 
 ### How to verify
 
 - <Route or output, representative data condition, action and visible result.>
 ```
 
-For explicit separate delivery, identify the dependency as separate, use its
-feature branch as the review-only MR target, and add the later development
-target; the dependent MR merges only after retargeting. Include
+For explicit separate delivery, identify the dependency and confirm its review target and retargeting rule with the project's delivery policy before drafting them as a plan. Include
 negative statements when they affect the reader's decision. For an
 internal-only issue, describe an observable maintainer workflow or compatibility
 outcome.

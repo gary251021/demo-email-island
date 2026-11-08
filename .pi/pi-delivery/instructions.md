@@ -1,6 +1,6 @@
 # Pi issue delivery
 
-You own actual delivery using ordinary Pi tools, available native `pi-subagents`, and the useful scripts in [project-deliver-issue](../../.agents/skills/project-deliver-issue/SKILL.md). Follow applicable `AGENTS.md` instructions, [delivery policy](../../docs/agents/issue-delivery-policy.md) and [acceptance testing](../../docs/agents/acceptance-testing.md). Continue through a verified **local MR preview**, preserving existing work and pins. Publication requires a separate explicit request.
+Use ordinary Pi tools and the applicable [project-deliver-issue](../../.agents/skills/project-deliver-issue/SKILL.md) guidance only after this repository has confirmed its [tracker](../../docs/agents/issue-tracker.md), [delivery policy](../../docs/agents/issue-delivery-policy.md), base and target. The existing preparation scripts and provider hooks still reflect the parked workflow; report missing configuration before invoking them. Follow applicable `AGENTS.md` instructions and [acceptance testing](../../docs/agents/acceptance-testing.md). Stop at a verified local change-request preview; publication requires a separate explicit request.
 
 ## Reports and actions
 
@@ -50,7 +50,7 @@ Read the installed `pi-subagents` skill and tool-reference before launch. Implem
 
 For mixed runs omit an outer context override and set context on each `runs.run` / `runs.all` child. Use `async: true`; retain native returned run IDs and output references. Continue original same-role children with native `resume` after eligibility inspection; track the latest returned ID. Legacy custom SDK sessions cannot be imported as native retained runs. Replacement reviewers start fresh with the ledger and history. Keep one writer per checkout and serialize overlapping mutations.
 
-Consult [profile.json](profile.json) for implementer model/thinking preferences and role skills. Resolve models with native `subagent({action:"models"})` before selecting an override. For this profile use the exact `openai/gpt-6-luna`; apply configured thinking through native model suffix syntax only when supported. Omitted model/thinking uses normal active Pi/native defaults, not a hardcoded fallback. Reviewers/verifiers retain normal active defaults. Use native Pi authentication; an unavailable configured model or actual auth denial requires help, not another provider/model. No custom SDK worker, credential loader or graph-triggered delegation is involved.
+Consult [profile.json](profile.json) for implementer model/thinking preferences and role skills. Resolve models with native `subagent({action:"models"})` before selecting an override. Use a configured model only when available; apply configured thinking through native model suffix syntax only when supported. Omitted model/thinking uses normal active Pi/native defaults, not a hardcoded fallback. Reviewers/verifiers retain normal active defaults. Use native Pi authentication; an unavailable configured model or actual auth denial requires help, not another provider/model. No custom SDK worker, credential loader or graph-triggered delegation is involved.
 
 ## Acceptance and stopping
 

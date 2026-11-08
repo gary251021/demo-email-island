@@ -1,6 +1,6 @@
-# GitLab Merge Request Description
+# Change-request description
 
-Use this template for the business merge-request preview.
+Use this template for a change-request preview when the repository's tracker and provider have been confirmed.
 
 Include a `Modules and features changed` table in every delivery MR. Cover each
 changed module or page, the feature changed, and its user-visible or operational
@@ -28,7 +28,7 @@ before publication.
   `Verification`.
 
 ```markdown
-Closes #<delivered issue number>
+<Issue reference in the configured provider's syntax>
 
 ## Summary
 
@@ -43,8 +43,8 @@ Closes #<delivered issue number>
 ## How it changed
 
 - <Implementation approach and owning files or module.>
-- Production base: `<vX.Y.Z>` (`<full SHA>`)
-- Delivery relationship: `<production root → dependencies → this feature → target>`
+- Confirmed base: `<ref>` (`<full SHA>`)
+- Delivery relationship: `<base → dependencies → this feature → confirmed target>`
 - <Compatibility or migration detail when applicable.>
 
 ## Human review map

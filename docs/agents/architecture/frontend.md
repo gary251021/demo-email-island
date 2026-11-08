@@ -16,8 +16,7 @@ the directories it needs.
   functions, and compose UI. Keep queries, business policy and cross-feature
   orchestration in their owning modules.
 - `src/features/<feature>/` holds a feature's components, hooks and state.
-- `src/components/` holds app-global components; manage shadcn primitives in
-  `src/components/ui/` through the CLI.
+- `src/components/` holds app-global components. Use the project's existing component library and its documented conventions when one is installed.
 
 **Import direction:** descendants may import from ancestors; ancestors and
 siblings reach a feature only through what that feature exports for them.

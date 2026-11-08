@@ -69,7 +69,7 @@ const componentModuleRuleOverrides = {
 const eslintConfig = defineConfig([
   {
     name: "project/ignores",
-    ignores: [".agents/**", ".codex/**", ".pi/**", ".scratch/**", ".storybook-preview/**", "playwright/**"],
+    ignores: [".agents/**", ".codex/**", ".pi/**", ".scratch/**", "playwright/**"],
   },
   // 1. Extend every shared preset before applying project configuration.
   {

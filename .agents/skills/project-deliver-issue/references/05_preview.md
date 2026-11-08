@@ -1,8 +1,8 @@
-# 05 — Assemble and preview the merge request
+# 05 Assemble and preview the change request
 
 ## Verify the feature
 
-Run `npm run harness-signal` and the required issue checks in the feature checkout.
+Run the repository's configured checks and the required issue checks in the feature checkout.
 Verify the complete publishable delta from the pinned feature base and confirm
 every required dependency remains in its ancestry. Use the same feature HEAD
 that passed independent review; changed patches require renewed review.
@@ -21,12 +21,10 @@ the delivery evidence and MR preview.
 
 Select the MR target under the branching strategy, then check the publishable
 patch against it.
-For the approved infrastructure exception, check the same patch against both
-targets; when `.gitlab-ci.yml` changes, validate it against the live GitLab 17
-CI lint endpoint.
+For an approved infrastructure exception, check the patch against each confirmed target. Validate CI changes with the project's configured CI provider before publication.
 
 Read [the MR description](merge-request-description.md) and show the
-complete MR preview in chat: source, target, title, body, production tag and SHA,
+complete change-request preview in chat: source, target, title, body, confirmed base ref and SHA,
 ordered delivery relationship, dependency refs and overrides, strategy, business
 commits, verification, and the workflow source path/revision.
 
@@ -39,6 +37,4 @@ boundary and report any unresolved artifact correction.
 
 Stop after the preview with every branch local. Push the feature branch or create an MR only on a later explicit request.
 
-When publication is authorized, run `glab mr create` with an explicit
-`--source-branch`. Retain the feature branch for subsequent changes and release
-selection.
+When publication is authorized, use the repository's configured provider to create the change request with the confirmed source and target. Retain the feature branch according to the project's policy.

@@ -97,17 +97,15 @@ coverage for parts of that journey. Name which boundaries are mocked. Real
 external delivery, retries and deployment readiness are outside this layer;
 simulated outcomes establish only this application's handling of them.
 
-## Layer 2: live Playwright
+## Layer 2: live browser verification
 
-Run Playwright against the development environment in a visible real browser,
-with real interactions and no mocks. Exercise sign-in, navigation, forms and
+When a development environment and browser tooling are configured, verify the application in a real browser with real interactions and no mocks. Exercise sign-in, navigation, forms and
 results through the actual application. Verify external effects through real
 readback; an accepted request establishes only that it was accepted.
 
 Infrastructure belongs to the harness; feature journey specifications belong to the
 feature's verification work. Use the explicit development URL. Record the target,
-revision, scenarios, results and relevant rendered evidence. Report missing access
-or backend capability as a blocker. Live write scenarios require authorization for
+revision, scenarios, results and relevant rendered evidence. Report missing access or application capability as a blocker for the affected live gate. Live write scenarios require authorization for
 their effects and test data.
 
 ## Delivery and review

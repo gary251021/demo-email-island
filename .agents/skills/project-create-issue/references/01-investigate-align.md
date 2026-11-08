@@ -85,8 +85,7 @@ and evidence-based rationale in the checkpoint. Preserve an explicit request for
 proof. When skipping conditional proof, identify the inspected source or current
 UI pattern and explain how it settles the relevant choice.
 
-A listed dependency is coupled. Record separate delivery only after an explicit
-human decision supported by accepted evidence.
+Determine how a listed dependency affects delivery from the configured policy and accepted evidence. Ask for a decision when separate delivery changes the proposed base or target.
 
 Alignment is complete when two reasonable implementers would produce the same
 user-visible result and respect the same agreed responsibilities, contracts and

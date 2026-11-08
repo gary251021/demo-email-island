@@ -1,6 +1,6 @@
 # Pi delivery reporting
 
-Run `/deliver issue N` from an idle interactive Pi session. A dedicated delivery conversation opens in the same terminal with normal Pi tools, extensions, skills and native pi-subagents available. The agent chooses how to deliver the issue under [coordinator guidance](instructions.md), [project delivery](../../.agents/skills/project-deliver-issue/SKILL.md), [delivery policy](../../docs/agents/issue-delivery-policy.md) and [acceptance testing](../../docs/agents/acceptance-testing.md).
+Run `/deliver issue N` only after this repository has configured its tracker, base, target and provider hooks; the existing hooks and preparation scripts still need reconciliation under the TODO in `project.md`. From an idle interactive Pi session, launch a configured delivery. A dedicated delivery conversation opens in the same terminal with normal Pi tools, extensions, skills and native pi-subagents available. The agent chooses how to deliver the issue under [coordinator guidance](instructions.md), [project delivery](../../.agents/skills/project-deliver-issue/SKILL.md), [delivery policy](../../docs/agents/issue-delivery-policy.md) and [acceptance testing](../../docs/agents/acceptance-testing.md).
 
 ## Hooks
 
@@ -34,7 +34,7 @@ The tools validate report shape and contradictions, then save domain facts. A co
 
 ## Native work and configuration
 
-[profile.json](profile.json) retains role skills, a concurrency preference, the hard `maxReviewRounds` limit, and optional implementer model/thinking preferences. Its current model preference is `openai/gpt-6-luna`. The coordinator passes configured preferences through documented native pi-subagents options, with normal active defaults when omitted and existing Pi authentication. Reporters do not select models or credentials. Implementers fork the **delivery coordinator** context; verifiers and each reviewer start fresh with explicit target/contract/diff/evidence. Native run IDs and resume own continuation; see [instructions](instructions.md#native-delegation).
+[profile.json](profile.json) retains role skills, a concurrency preference, the hard `maxReviewRounds` limit, and optional implementer model/thinking preferences. The coordinator passes available configured preferences through documented native pi-subagents options, with normal active defaults when omitted and existing Pi authentication. Reporters do not select models or credentials. Implementers fork the **delivery coordinator** context; verifiers and each reviewer start fresh with explicit target/contract/diff/evidence. Native run IDs and resume own continuation; see [instructions](instructions.md#native-delegation).
 
 The launch inherits the current Pi model/thinking and normal discovery rather than replacing ordinary tools with an execution allowlist. Additional configured extensions and coordinator skills resolve from the repository or `~/`. Pi skill paths may resolve to their matching `~/.agents/skills` installation; missing configured skills fail visibly. The reusable [phase scripts](../../.agents/skills/project-deliver-issue/SKILL.md#script-interface) remain available for preparation, checkout/commit validation, review preparation and preview/patch proofs. There is no custom SDK worker layer or reporting sandbox.
 

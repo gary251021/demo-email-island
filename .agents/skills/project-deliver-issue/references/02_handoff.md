@@ -26,15 +26,8 @@ not native resumable children.
 
 ## Existing UI references
 
-For UI work, the coordinator reads the issue's design references, including
-references outside `For Agent`, and the existing preview README, story definitions,
-component/style sources and review specifications. Follow the
-[Storybook workspace](../../../../.storybook-preview/README.md) to locate them;
-use the issue's named stories and remote URL or its documented local-build fallback.
-Inspect the applicable rendered states, controls and interactions before defining
-UI test expectations and dispatching UI work. Carry their
-exact URLs, story IDs, source paths, applicable requirements and observed states
-in the existing packet's `guidance` and `verification` fields. Reuse the supplied
+For UI work, read the issue's design references, including references outside `For Agent`, and the available preview, component, style, and review sources. Use the preview environment configured for this repository. If none exists, report the visual evidence gap.
+Inspect applicable rendered states, controls, and interactions before defining UI test expectations and dispatching UI work. Carry source paths, requirements, observed states, and any available preview URLs or state identifiers in the packet's `guidance` and `verification` fields. Reuse the supplied
 specification. Keep the distinction between visual/interaction references and
 the issue's authoritative backend behavior contract.
 
@@ -65,7 +58,7 @@ Generate a separate UTF-8 JSON packet for each assignment outside tracked files
   the authoritative issue reference for gaps; omit unrelated feature requirements.
 - `acceptedComments`: only comments affecting those criteria or shared contracts;
   use `None` when none apply.
-- `guidance`: applicable rules and the exact Storybook states relevant to this task.
+- `guidance`: applicable rules and the exact rendered states relevant to this task.
 - `decisions`: settled decisions, dependencies, ownership and explicit exclusions
   needed for this assignment, including constraints imposed by consumers.
 - `codeMap`: owned source/test files, public interfaces, exact dependency signatures,
@@ -93,11 +86,11 @@ For each first ticket include a ticket-scoped `acceptance` plan:
       "id": "AC-CREATE",
       "scenarios": [
         {
-          "name": "Admin creates a notification and sees the saved result",
-          "inputs": "Authenticated admin, valid content and selected recipients",
-          "actions": "Open create route, fill the form, submit, observe completion",
-          "expected": "The island view shows the archived thread and updates its unread count",
-          "mockBoundary": "External email provider API; real route, loader, server function, authorization and mapping"
+          "name": "User changes an item and sees the saved result",
+          "inputs": "Authorized user and valid item data",
+          "actions": "Open the relevant view, change the item, submit, observe completion",
+          "expected": "The view shows the updated item",
+          "mockBoundary": "External provider API; real application route, validation and mapping"
         }
       ]
     }
@@ -132,8 +125,7 @@ assignments carry the same semantic contract without that transport restriction.
 
 Use native `subagent` directly for one task or `runs.run` / `runs.all` for a
 coordinated wave. Read the installed tool reference; prefer `async: true`, explicit
-per-child context and one writer per checkout. Supply the actual checkout and
-full start revision, production/dependency/feature pins and workflow source, owned paths,
+per-child context and one writer per checkout. Supply the actual checkout and full start revision, configured base/dependency/feature pins and workflow source when applicable, owned paths,
 scenario plan, selected imports and relevant guidance. Child task text stays
 bounded; output artifacts are bound with native `output`, not filename prose.
 
@@ -146,9 +138,7 @@ tools perform actions; delivery reports only describe their outcome/evidence.
 
 Use the workflow source path and revision recorded under
 [delivery policy](../../../../docs/agents/issue-delivery-policy.md#direct-implementation).
-Keep application ancestry pinned to the production/dependency/feature revisions;
-harness updates are maintained on `feature/harness` and consumed as workflow
-guidance without replaying issue commits or changing the feature base. Refresh
+Keep application ancestry pinned to the confirmed base and dependency revisions. Treat a separate workflow source as applicable only when this repository configures one; preserve the approved feature base when updating guidance. Refresh
 changed guidance before the next assignment and rerun only affected checks.
 
 `validateCheckout` and `validateReturn` remain available for Git checks;
