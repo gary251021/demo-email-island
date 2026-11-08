@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import type { ListMailInput, MailInput } from "../../lib/mailbox";
+import type { ListMailInput, MailInput, MailView } from "../../lib/mailbox";
 import { mailListQueryOptions } from "./mailbox.queries";
+import { MailActions } from "./MailActions";
 import { useMailReader } from "./useMailReader";
 
 type MailPanelProps = {
@@ -11,6 +12,7 @@ type MailPanelProps = {
   mailId?: string;
   onOpenMail: (mailId: string) => void;
   onBack: () => void;
+  onView: (view: MailView) => void;
   onClose: () => void;
   onUnauthenticated: () => void;
 };
@@ -34,7 +36,22 @@ export function MailPanel(props: MailPanelProps) {
       <header className="mail-panel-header">
         <div>
           <h1>{props.name}</h1>
-          <p>郵件</p>
+          <div className="mail-view-tabs" role="group" aria-label="郵件檢視">
+            <button
+              type="button"
+              aria-pressed={props.input.view === "active"}
+              onClick={() => props.onView("active")}
+            >
+              郵件
+            </button>
+            <button
+              type="button"
+              aria-pressed={props.input.view === "archived"}
+              onClick={() => props.onView("archived")}
+            >
+              已封存
+            </button>
+          </div>
         </div>
         <button
           ref={closeButton}
@@ -52,7 +69,11 @@ export function MailPanel(props: MailPanelProps) {
         <MailBody
           key={props.mailId}
           ownerKey={props.ownerKey}
-          input={{ ...props.input, mailId: props.mailId }}
+          input={{
+            domainId: props.input.domainId,
+            subcategoryId: props.input.subcategoryId,
+            mailId: props.mailId,
+          }}
           onBack={props.onBack}
           onUnauthenticated={props.onUnauthenticated}
         />
@@ -77,7 +98,11 @@ function MailList({
   MailPanelProps,
   "ownerKey" | "input" | "onOpenMail" | "onUnauthenticated"
 >) {
+  const heading = useRef<HTMLHeadingElement>(null);
   const list = useQuery(mailListQueryOptions(ownerKey, input));
+  useEffect(() => {
+    heading.current?.focus();
+  }, [list.isSuccess]);
   useUnauthenticated(list.error, onUnauthenticated);
   if (list.isPending)
     return (
@@ -87,30 +112,38 @@ function MailList({
     );
   if (list.isError)
     return <ReadError error={list.error} retry={() => void list.refetch()} />;
-  if (list.data.length === 0)
-    return <p className="panel-message">這裡還沒有郵件。</p>;
 
   return (
-    <ul className="mail-list" aria-label="郵件列表">
-      {list.data.map((mail) => (
-        <li key={mail.id}>
-          <button
-            type="button"
-            className="mail-row"
-            onClick={() => onOpenMail(mail.id)}
-          >
-            <span className="mail-row-topline">
-              <span className="mail-sender">{mail.sender}</span>
-              <time dateTime={mail.receivedAt}>
-                {formatDate(mail.receivedAt)}
-              </time>
-            </span>
-            <span className="mail-subject">{mail.subject}</span>
-            {mail.readAt === null && <span className="mail-unread">未讀</span>}
-          </button>
-        </li>
-      ))}
-    </ul>
+    <div>
+      <h2 className="mail-list-title" ref={heading} tabIndex={-1}>
+        {input.view === "archived" ? "已封存列表" : "郵件列表"}
+      </h2>
+      {list.data.length === 0 && (
+        <p className="panel-message">這裡還沒有郵件。</p>
+      )}
+      <ul className="mail-list" aria-label="郵件列表">
+        {list.data.map((mail) => (
+          <li key={mail.id}>
+            <button
+              type="button"
+              className="mail-row"
+              onClick={() => onOpenMail(mail.id)}
+            >
+              <span className="mail-row-topline">
+                <span className="mail-sender">{mail.sender}</span>
+                <time dateTime={mail.receivedAt}>
+                  {formatDate(mail.receivedAt)}
+                </time>
+              </span>
+              <span className="mail-subject">{mail.subject}</span>
+              {mail.readAt === null && (
+                <span className="mail-unread">未讀</span>
+              )}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -153,6 +186,14 @@ function MailBody({
             </time>
           </div>
           <div className="mail-body-text">{detail.data.bodyText}</div>
+          <MailActions
+            ownerKey={ownerKey}
+            input={input}
+            mail={detail.data}
+            onArchived={onBack}
+            onUnauthenticated={onUnauthenticated}
+          />
+
           <div className="read-receipt" aria-live="polite">
             {save.isPending && <p role="status">正在保存已讀狀態…</p>}
             {save.isError && (

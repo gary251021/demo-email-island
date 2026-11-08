@@ -10,8 +10,8 @@ import { mailSummarySchema, overviewSchema } from "../../lib/mailbox";
 import { identitySchema } from "../../lib/session";
 
 const transportSource = `import {getIdentity} from '/src/features/session/session.functions.ts';
-import {startDemo,getOverview,listMail,getMail,markMailRead} from '/src/features/mailbox/mailbox.functions.ts';
-window.mailboxAcceptanceTransport = {getIdentity,startDemo,getOverview,listMail,getMail,markMailRead};`;
+import * as mailbox from '/src/features/mailbox/mailbox.functions.ts';
+window.mailboxAcceptanceTransport = {...mailbox,getIdentity};`;
 
 type RpcMethod =
   | "getIdentity"
@@ -19,7 +19,11 @@ type RpcMethod =
   | "getOverview"
   | "listMail"
   | "getMail"
-  | "markMailRead";
+  | "markMailRead"
+  | "replyToMail"
+  | "archiveMail"
+  | "getQuickArchivePreview"
+  | "archiveUnreadSnapshot";
 type RpcResult = { ok: true; data: unknown } | { ok: false; error: string };
 // Test-only browser bridge invokes the actual Vite-generated Start RPC client.
 declare global {
@@ -79,7 +83,9 @@ export async function q4(page: Page) {
   const input = { domainId: "core-projects", subcategoryId: subcategory.id };
   const mails = mailSummarySchema
     .array()
-    .parse(resultData(await rpc(page, "listMail", input)));
+    .parse(
+      resultData(await rpc(page, "listMail", { ...input, view: "active" })),
+    );
   const mail = mails.find((entry) => entry.subject === "請確認報價項目");
   if (!mail) throw new Error("Missing 請確認報價項目");
   return {
@@ -170,7 +176,8 @@ static now(){return now();}
 };`,
     );
     const port =
-      Number(process.env.EMAIL_ISLAND_E2E_PORT ?? 3210) + testInfo.workerIndex;
+      Number(process.env.EMAIL_ISLAND_E2E_PORT ?? 3210) +
+      testInfo.parallelIndex;
     const url = `http://127.0.0.1:${port}`;
     let output = "";
     const launch = () => {

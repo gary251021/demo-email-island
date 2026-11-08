@@ -47,6 +47,7 @@ test("AC-1 entry-disabled-google-and-initialize", async ({ page, app }) => {
         await rpc(page, "listMail", {
           domainId: domain.id,
           subcategoryId: subcategory.id,
+          view: "active",
         }),
       );
       expect(Array.isArray(result) && result.length > 0).toBe(true);
@@ -222,6 +223,7 @@ test("AC-7 cross-owner-read-write-isolation", async ({
           ? {
               domainId: dataB.input.domainId,
               subcategoryId: dataB.input.subcategoryId,
+              view: "active",
             }
           : dataB.input;
       const response = await rpc(page, method, input);
@@ -259,6 +261,7 @@ test("AC-8 resource-auth-and-parent-validation", async ({
         input = {
           domainId: data.input.domainId,
           subcategoryId: data.input.subcategoryId,
+          view: "active",
         };
       expect(await rpc(unauthenticated, method, input)).toEqual({
         ok: false,
@@ -275,7 +278,11 @@ test("AC-8 resource-auth-and-parent-validation", async ({
   for (const method of ["listMail", "getMail", "markMailRead"] as const) {
     const input =
       method === "listMail"
-        ? { domainId: "internal-team", subcategoryId: data.input.subcategoryId }
+        ? {
+            domainId: "internal-team",
+            subcategoryId: data.input.subcategoryId,
+            view: "active",
+          }
         : { ...data.input, domainId: "internal-team" };
     expect(await rpc(page, method, input)).toEqual({
       ok: false,
@@ -558,6 +565,7 @@ test("NAV-2 logout-revokes-session-and-protects-mailbox", async ({
     await rpc(page, "listMail", {
       domainId: oldMail.input.domainId,
       subcategoryId: oldMail.input.subcategoryId,
+      view: "active",
     }),
   ).toEqual({ ok: false, error: "NOT_FOUND" });
   const database = new DatabaseSync(app.dbPath);

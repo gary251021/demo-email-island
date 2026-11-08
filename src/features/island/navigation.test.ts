@@ -16,13 +16,24 @@ const overview: Overview = {
       id: "core-projects",
       name: "核心專案",
       unreadCount: 3,
-      subcategories: [{ id: quoteId, name: "Q4 報價", unreadCount: 3 }],
+      pendingReplyCount: 0,
+      subcategories: [
+        { id: quoteId, name: "Q4 報價", unreadCount: 3, pendingReplyCount: 0 },
+      ],
     },
     {
       id: "internal-team",
       name: "團隊溝通",
       unreadCount: 0,
-      subcategories: [{ id: designId, name: "團隊週報", unreadCount: 0 }],
+      pendingReplyCount: 0,
+      subcategories: [
+        {
+          id: designId,
+          name: "團隊週報",
+          unreadCount: 0,
+          pendingReplyCount: 0,
+        },
+      ],
     },
   ],
 };
@@ -58,6 +69,7 @@ describe("island selection", () => {
       id: designId,
       name: "團隊週報",
       unreadCount: 0,
+      pendingReplyCount: 0,
     });
   });
 

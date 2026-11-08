@@ -11,11 +11,37 @@ export const domainIdSchema = z.enum([
   "low-priority",
 ]);
 export type DomainId = z.infer<typeof domainIdSchema>;
-export const listMailInput = z.strictObject({
+export const mailScopeInput = z.strictObject({
   domainId: domainIdSchema,
   subcategoryId: z.uuid(),
 });
-export const mailInput = listMailInput.extend({ mailId: z.uuid() });
+export const mailViewSchema = z.enum(["active", "archived"]);
+export const listMailInput = mailScopeInput.extend({ view: mailViewSchema });
+export const mailInput = mailScopeInput.extend({ mailId: z.uuid() });
+export const replyBodySchema = z
+  .string()
+  .max(10000)
+  .refine((value) => value.trim().length > 0);
+export const replyInput = mailInput.extend({
+  replyId: z.uuid(),
+  bodyText: replyBodySchema,
+});
+export const snapshotInput = mailScopeInput.extend({
+  mailIds: z
+    .array(z.uuid())
+    .min(1)
+    .max(2)
+    .refine((ids) => new Set(ids).size === ids.length),
+});
+export const replySchema = z.object({
+  id: z.uuid(),
+  bodyText: z.string(),
+  createdAt: z.iso.datetime(),
+});
+export type MailScope = z.infer<typeof mailScopeInput>;
+export type MailView = z.infer<typeof mailViewSchema>;
+export type ReplyInput = z.infer<typeof replyInput>;
+export type SnapshotInput = z.infer<typeof snapshotInput>;
 export type ListMailInput = z.infer<typeof listMailInput>;
 export type MailInput = z.infer<typeof mailInput>;
 export const mailSummarySchema = z.object({
@@ -25,9 +51,13 @@ export const mailSummarySchema = z.object({
   sender: z.string(),
   receivedAt: z.iso.datetime(),
   readAt: z.iso.datetime().nullable(),
+  archivedAt: z.iso.datetime().nullable(),
+  requiresReply: z.boolean(),
+  hasPendingReply: z.boolean(),
 });
 export const mailDetailSchema = mailSummarySchema.extend({
   bodyText: z.string(),
+  replies: z.array(replySchema),
 });
 export type MailSummary = z.infer<typeof mailSummarySchema>;
 export type MailDetail = z.infer<typeof mailDetailSchema>;
@@ -35,6 +65,7 @@ const subcategorySchema = z.object({
   id: z.uuid(),
   name: z.string(),
   unreadCount: z.number().int().nonnegative(),
+  pendingReplyCount: z.number().int().nonnegative(),
 });
 export const overviewSchema = z.object({
   domains: z.array(
@@ -42,6 +73,7 @@ export const overviewSchema = z.object({
       id: domainIdSchema,
       name: z.string(),
       unreadCount: z.number().int().nonnegative(),
+      pendingReplyCount: z.number().int().nonnegative(),
       subcategories: z.array(subcategorySchema),
     }),
   ),

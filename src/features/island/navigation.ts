@@ -1,14 +1,20 @@
 import { z } from "zod";
-import { domainIdSchema, type Overview } from "../../lib/mailbox";
+import {
+  domainIdSchema,
+  mailViewSchema,
+  type Overview,
+} from "../../lib/mailbox";
 
 export const islandSelectionSchema = z
   .strictObject({
     domain: domainIdSchema.optional(),
     subcategory: z.uuid().optional(),
     mail: z.uuid().optional(),
+    view: mailViewSchema.optional(),
   })
   .refine((value) => !value.subcategory || Boolean(value.domain))
-  .refine((value) => !value.mail || Boolean(value.subcategory));
+  .refine((value) => !value.mail || Boolean(value.subcategory))
+  .refine((value) => !value.view || Boolean(value.subcategory));
 
 export type IslandSelection = z.infer<typeof islandSelectionSchema>;
 
@@ -27,7 +33,11 @@ export function resolveSelection(
 }
 
 export function returnToList(selection: IslandSelection): IslandSelection {
-  return { domain: selection.domain, subcategory: selection.subcategory };
+  return {
+    domain: selection.domain,
+    subcategory: selection.subcategory,
+    ...(selection.view ? { view: selection.view } : {}),
+  };
 }
 
 export function closeMailPanel(selection: IslandSelection): IslandSelection {
