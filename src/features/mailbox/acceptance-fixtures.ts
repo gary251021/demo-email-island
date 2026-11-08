@@ -6,6 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { once } from "node:events";
+import { stripVTControlCharacters } from "node:util";
 import { mailListSchema, overviewSchema } from "../../lib/mailbox";
 import { identitySchema } from "../../lib/session";
 
@@ -220,7 +221,8 @@ static now(){return now();}
               throw new Error(
                 `Local application exited before ready: ${startupOutput}`,
               );
-            if (!startupOutput.includes(url)) return 0;
+            if (!stripVTControlCharacters(startupOutput).includes(url))
+              return 0;
             try {
               return (await fetch(url)).status;
             } catch {
