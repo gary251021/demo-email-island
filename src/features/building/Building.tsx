@@ -59,7 +59,7 @@ export function Building({ domainId, unreadCount }: BuildingProps) {
       </>
     );
   return (
-    <group rotation={[0, -0.28, 0]} dispose={null}>
+    <group rotation={[0, -0.28, 0]}>
       <Block at={[0, 0.04, 0]} size={[1.8, 0.08, 1.5]} color={darkStone} />
       {structure}
     </group>

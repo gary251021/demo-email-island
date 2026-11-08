@@ -385,6 +385,12 @@ test("AC-6 failed reads and overview refreshes preserve truthful counts", async 
     "可讀內文",
   );
   await expect(page.getByLabel("積壓 0未讀 30", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
+  await page.getByRole("button", { name: "返回群島", exact: true }).click();
+  await (await domain(page, state.domain.name, 30)).click();
+  // Keep the read fault held while reopening the same still-unread message.
+  await openMail(page, "積壓 0");
+  await expect(page.getByRole("alert")).toContainText("保存失敗");
   failRead = false;
   await page.getByRole("button", { name: "重試", exact: true }).click();
   await expect(page.getByLabel("積壓 0未讀 29", { exact: true })).toBeVisible();
@@ -401,8 +407,30 @@ test("AC-6 failed reads and overview refreshes preserve truthful counts", async 
     "可讀內文",
   );
   await expect(page.getByLabel("積壓 0未讀 29", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
+  await expect(page).toHaveURL(`${app.url}/island?domain=core-projects`);
+  await expect(
+    page.getByRole("main", { name: `${state.domain.name}板塊`, exact: true }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "返回群島", exact: true }).click();
+  await expect(await domain(page, state.domain.name, 29)).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("未能更新群島");
   failOverview = false;
+  armOverviewFailure = false;
   await page.getByRole("button", { name: "重試", exact: true }).click();
+  await (await domain(page, state.domain.name, 28)).click();
+  await expect(page.getByLabel("積壓 0未讀 28", { exact: true })).toBeVisible();
+  await page
+    .getByRole("button", { name: label("積壓 0", 28), exact: true })
+    .click();
+  await page
+    .getByRole("button")
+    .filter({ has: page.getByText("相同主旨", { exact: true }) })
+    .nth(1)
+    .click();
+  await expect(page.getByRole("article", { name: "相同主旨" })).toContainText(
+    "可讀內文",
+  );
   await expect(page.getByLabel("積壓 0未讀 28", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
   await page.getByRole("button", { name: "返回群島", exact: true }).click();
@@ -413,3 +441,48 @@ function required<T>(value: T | undefined): T {
   if (value === undefined) throw new Error("Missing acceptance fixture");
   return value;
 }
+
+test("AC-6 navigation refreshes external reads and read invalidations", async ({
+  page,
+  browser,
+  app,
+}) => {
+  await enter(page, app.url);
+  const state = await seed(page, app.dbPath, [30]);
+  const other = await browser.newContext({
+    storageState: await page.context().storageState(),
+  });
+  try {
+    const second = await other.newPage();
+    await second.goto(`${app.url}/island`);
+    await (await domain(second, state.domain.name, 30)).click();
+    await openMail(second, "積壓 0");
+    await expect(
+      second.getByLabel("積壓 0未讀 29", { exact: true }),
+    ).toBeVisible();
+    // This tab still displays its prior cache until navigation revalidates it.
+    await (await domain(page, state.domain.name, 30)).click();
+    await expect(
+      page.getByRole("button", { name: label("積壓 0", 29), exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: label("積壓 0", 29), exact: true })
+      .click();
+    await page
+      .getByRole("button")
+      .filter({ has: page.getByText("相同主旨", { exact: true }) })
+      .nth(1)
+      .click();
+    await expect(
+      page.getByLabel("積壓 0未讀 28", { exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: label("積壓 0", 28), exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "返回群島", exact: true }).click();
+    await expect(await domain(page, state.domain.name, 28)).toBeVisible();
+  } finally {
+    await other.close();
+  }
+});
