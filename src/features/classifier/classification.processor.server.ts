@@ -32,9 +32,17 @@ function currentSnapshot(work: Work) {
     return null;
   return mail;
 }
-export async function processClassification(workId: string) {
+export async function processClassification(
+  workId: string,
+  jobId: string | undefined,
+) {
   const work = findWork(workId);
-  if (!work || work.outcome !== "pending") return;
+  if (
+    !work ||
+    work.outcome !== "pending" ||
+    jobId !== `${work.workId}-${work.dispatchGeneration}`
+  )
+    return;
   try {
     const mail = currentSnapshot(work);
     if (!mail) {

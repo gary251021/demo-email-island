@@ -45,7 +45,11 @@ function owner(count = 1) {
   return id;
 }
 async function processOwner(id: string) {
-  for (const work of ownerWorks(id)) await processClassification(work.workId);
+  for (const work of ownerWorks(id))
+    await processClassification(
+      work.workId,
+      `${work.workId}-${work.dispatchGeneration}`,
+    );
 }
 beforeAll(() => {
   process.env.TYPESAFE_BASE_URL = provider;

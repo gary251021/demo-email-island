@@ -9,7 +9,7 @@ const worker = new Worker(
   async (job) => {
     if (job.name === "reconcile") await dispatchPending();
     else if (typeof job.data.workId === "string")
-      await processClassification(job.data.workId);
+      await processClassification(job.data.workId, job.id);
   },
   { connection, concurrency: 4, stalledInterval: 1000, lockDuration: 5000 },
 );
