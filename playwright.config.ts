@@ -1,9 +1,10 @@
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./src/features/mailbox",
+  testDir: "./src/features",
   testMatch: "**/*.e2e.ts",
   workers: 1,
+  outputDir: process.env.EMAIL_ISLAND_E2E_OUTPUT ?? "test-results/artifacts",
   timeout: 60_000,
   expect: { timeout: 10_000 },
   use: {
@@ -14,6 +15,12 @@ export default defineConfig({
   },
   reporter: [
     ["list"],
-    ["json", { outputFile: "test-results/acceptance.json" }],
+    [
+      "json",
+      {
+        outputFile:
+          process.env.EMAIL_ISLAND_E2E_REPORT ?? "test-results/acceptance.json",
+      },
+    ],
   ],
 });

@@ -546,3 +546,52 @@ button.island-label:hover {
     top: 112px;
   }
 }
+
+.classification-control {
+  position: absolute;
+  z-index: 10;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  max-width: calc(100% - 140px);
+  padding: 8px 14px;
+  border-radius: 22px;
+  background: #fffdf4;
+  color: #31534d;
+  box-shadow: 0 2px 12px #244c4020;
+  font-size: 12px;
+}
+.category-editor {
+  margin: 12px 0;
+}
+.category-editor form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.category-editor select {
+  display: block;
+  max-width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid #b5c9bd;
+  border-radius: 8px;
+  background: #fffdf4;
+  color: #31534d;
+}
+@media (max-width: 600px) {
+  .classification-control {
+    top: 78px;
+    bottom: auto;
+    left: 12px;
+    max-width: calc(100% - 24px);
+    transform: none;
+    gap: 8px;
+  }
+}
