@@ -10,18 +10,17 @@ import {
   darkStone,
   timber,
   darkTimber,
-  slate,
   cream,
   arch,
 } from "./building-primitives";
 export function BuildingFamily({
   domainId,
   tier,
-  roofColor = slate,
+  roofColor,
 }: {
   domainId: DomainId;
   tier: BuildingTier;
-  roofColor?: string;
+  roofColor: string;
 }) {
   const models = {
     "core-projects": <Workshop roofColor={roofColor} tower={tier >= 3} />,
