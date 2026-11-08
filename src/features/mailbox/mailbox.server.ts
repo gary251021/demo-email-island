@@ -167,11 +167,11 @@ export function listClassificationCandidates(ownerKey: string) {
   return readOverview(ownerKey).domains.map((domain) => ({
     id: domain.id,
     name: domain.name,
-    description: domain.name,
+    description: null,
     subcategories: domain.subcategories.map((category) => ({
       id: category.id,
       name: category.name,
-      description: category.name,
+      description: null,
     })),
   }));
 }

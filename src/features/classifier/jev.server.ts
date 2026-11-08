@@ -9,7 +9,7 @@ export async function askJev(
     bodyText: string;
     receivedAt: string;
   },
-  candidates: { id: string; name: string; description: string }[],
+  candidates: { id: string; name: string; description: string | null }[],
   model: string,
   step: "domain" | "subcategory",
 ) {
@@ -21,7 +21,7 @@ export async function askJev(
   const criteria = Object.fromEntries(
     candidates.map((candidate) => [
       candidate.id,
-      `${candidate.name}: ${candidate.description}`,
+      { name: candidate.name, description: candidate.description },
     ]),
   );
   const response = await client.systemOne({

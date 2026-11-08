@@ -20,8 +20,18 @@ const planSchema = z.object({
 });
 type Plan = z.infer<typeof planSchema>;
 const plans: Plan[] = [];
-const calls: { subject: string; step: string; body: unknown }[] = [];
-let held: (() => void)[] = [];
+const calls: {
+  subject: string;
+  step: string;
+  requestId: number;
+  body: unknown;
+}[] = [];
+let held: {
+  subject: string;
+  step: string;
+  requestId: number;
+  resolve: () => void;
+}[] = [];
 const subjectDomains: [RegExp, string][] = [
   [/報價|設計/, "core-projects"],
   [/團隊/, "internal-team"],
@@ -48,11 +58,45 @@ const server = createServer(async (req, res) => {
     send(200, {});
     return;
   }
+  if (req.url === "/release-one" && req.method === "POST") {
+    const selection = z
+      .object({
+        subject: z.string(),
+        step: z.string().optional(),
+        requestId: z.number().optional(),
+      })
+      .parse(body);
+    const index = held.findIndex(
+      (request) =>
+        request.subject === selection.subject &&
+        (!selection.step || request.step === selection.step) &&
+        (selection.requestId === undefined ||
+          selection.requestId === request.requestId),
+    );
+    if (index < 0) {
+      send(404, { error: "NO_HELD_REQUEST" });
+      return;
+    }
+    held.splice(index, 1)[0]!.resolve();
+    send(200, {});
+    return;
+  }
+  if (req.url === "/held") {
+    send(
+      200,
+      held.map(({ subject, step, requestId }) => ({
+        subject,
+        step,
+        requestId,
+      })),
+    );
+    return;
+  }
   if (req.url === "/release") {
     for (const plan of plans) plan.hold = false;
     const release = held;
     held = [];
-    release.forEach((resolve) => resolve());
+    release.forEach((request) => request.resolve());
     send(200, {});
     return;
   }
@@ -77,12 +121,16 @@ const server = createServer(async (req, res) => {
       ? "domain"
       : "subcategory";
     const subject = parsed.state.subject;
-    calls.push({ subject, step, body });
+    const requestId = calls.length + 1;
+    calls.push({ subject, step, requestId, body });
     const index = plans.findIndex(
       (plan) => subject === plan.subject && (!plan.step || plan.step === step),
     );
     const plan = index >= 0 ? plans.splice(index, 1)[0] : undefined;
-    if (plan?.hold) await new Promise<void>((resolve) => held.push(resolve));
+    if (plan?.hold)
+      await new Promise<void>((resolve) =>
+        held.push({ subject, step, requestId, resolve }),
+      );
     if (plan?.fail) {
       send(400, { error: { message: "Fixture classification failure" } });
       return;
@@ -94,13 +142,13 @@ const server = createServer(async (req, res) => {
         "low-priority";
     if (!selected && step === "subcategory")
       selected = choices.find(([, description]) =>
-        String(description).includes(subcategoryName(subject)),
+        criterionName(description).includes(subcategoryName(subject)),
       )?.[0];
     const id =
       choices.find(
         ([id, description]) =>
           id === selected ||
-          String(description).includes(selected ?? "__none__"),
+          criterionName(description).includes(selected ?? "__none__"),
       )?.[0] ?? choices[0]?.[0];
     send(200, {
       model: "jev-1.14.0",
@@ -129,7 +177,7 @@ server.listen(
   () => console.log("Jev fixture ready"),
 );
 process.on("SIGTERM", () => {
-  held.forEach((resolve) => resolve());
+  held.forEach((request) => request.resolve());
   server.close();
 });
 
@@ -137,4 +185,11 @@ function subcategoryName(subject: string) {
   if (subject.includes("設計")) return "設計審批";
   if (subject.includes("報價")) return "Q4 報價";
   return "";
+}
+
+function criterionName(value: unknown) {
+  if (typeof value === "string") return value; // The prior SDK fixture contract used plain option text.
+  return z
+    .object({ name: z.string(), description: z.string().nullable() })
+    .parse(value).name;
 }

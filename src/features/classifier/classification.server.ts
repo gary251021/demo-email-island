@@ -13,6 +13,7 @@ import {
   ownerWorks,
   hasOverride,
   savedAnswers,
+  type Work,
 } from "./classification.repository.server";
 import {
   contentHash,
@@ -40,17 +41,38 @@ export function enqueueChangedMail(
         work.ruleVersion === ruleVersion &&
         work.taxonomyHash === taxonomy,
     );
-    if (existing) continue;
+    const otherUnfinishedContent = works.some(
+      (work) =>
+        work.mailId === mail.id &&
+        work.contentHash !== content &&
+        (work.outcome === "pending" || work.outcome === "failed"),
+    );
+    if (
+      existing &&
+      isCurrentPlacement(existing, mail) &&
+      !otherUnfinishedContent
+    )
+      continue;
     if (
       mode === "changed" &&
       works.some(
-        (work) => work.mailId === mail.id && work.contentHash === content,
+        (work) =>
+          work.mailId === mail.id &&
+          work.contentHash === content &&
+          isCurrentPlacement(work, mail) &&
+          !otherUnfinishedContent,
       )
     )
       continue;
     db.prepare(
       "UPDATE classification_work SET outcome='superseded' WHERE owner_id=? AND mail_id=? AND outcome IN ('pending','failed')",
     ).run(ownerId, mail.id);
+    if (existing) {
+      db.prepare(
+        "UPDATE classification_work SET outcome='pending',error_code=NULL,resolved=0,placement_revision=?,dispatch_generation=dispatch_generation+1 WHERE work_id=? AND owner_id=?",
+      ).run(mail.placementRevision, existing.workId, ownerId);
+      continue;
+    }
     db.prepare(
       `INSERT INTO classification_work (work_id,owner_id,mail_id,content_hash,requested_model,rule_version,taxonomy_hash,placement_revision,outcome) VALUES (?,?,?,?,?,?,?,?,'pending')`,
     ).run(
@@ -146,4 +168,19 @@ function classificationSource(manual: boolean, automatic: boolean) {
   if (manual) return "manual" as const;
   if (automatic) return "automatic" as const;
   return "unclassified" as const;
+}
+
+// applyCategory advances the revision exactly once in the same success transaction.
+function isCurrentPlacement(
+  work: Work,
+  mail: ReturnType<typeof getClassificationInputs>[number],
+) {
+  if (work.outcome === "superseded") return false;
+  if (work.outcome === "succeeded")
+    return (
+      work.placementRevision + 1 === mail.placementRevision &&
+      savedAnswers(work.workId)?.subcategoryAnswer?.choice ===
+        mail.subcategoryId
+    );
+  return work.placementRevision === mail.placementRevision;
 }

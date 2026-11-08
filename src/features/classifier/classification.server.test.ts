@@ -23,7 +23,7 @@ import {
 } from "./classification.server";
 import { ownerWorks, savedAnswers } from "./classification.repository.server";
 
-const provider = "http://127.0.0.1:4302";
+const provider = process.env.TYPESAFE_BASE_URL ?? "http://127.0.0.1:4302";
 async function control(plans: unknown[]) {
   await fetch(provider + "/control", {
     method: "POST",
@@ -88,6 +88,23 @@ it("persists exact two-step provider evidence and reuses cache without leaking f
   expect(await callCount()).toBe(before);
   expect(ownerWorks(id)).toHaveLength(1);
   const requests = await (await fetch(provider + "/calls")).json();
+  const candidates = listClassificationCandidates(id);
+  expect(
+    candidates.every(
+      (domain) =>
+        domain.description === null &&
+        domain.subcategories.every((category) => category.description === null),
+    ),
+  ).toBe(true);
+  for (const request of requests)
+    for (const criterion of Object.values(
+      request.body.questions.category.criteria,
+    ))
+      expect(criterion).toMatchObject({
+        name: expect.any(String),
+        description: null,
+      });
+
   for (const request of requests)
     expect(Object.keys(request.body.state).sort()).toEqual([
       "bodyText",
