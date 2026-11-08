@@ -1,114 +1,40 @@
-import { ExtrudeGeometry, Shape } from "three";
 import type { DomainId } from "../../lib/mailbox";
-
-type BuildingProps = { domainId: DomainId };
-type Point = [number, number, number];
-
-const stone = "#d8c9aa";
-const darkStone = "#b7aa93";
-const timber = "#97704f";
-const darkTimber = "#684d3d";
-const slate = "#667b90";
-const cream = "#f0dec0";
-
-const gableShape = new Shape();
-gableShape.moveTo(-0.5, 0);
-gableShape.lineTo(0, 0.5);
-gableShape.lineTo(0.5, 0);
-gableShape.closePath();
-const gable = new ExtrudeGeometry(gableShape, {
-  depth: 1,
-  bevelEnabled: false,
-});
-gable.translate(0, 0, -0.5);
-
-const archShape = new Shape();
-archShape.moveTo(-1, 0);
-archShape.absarc(0, 0, 1, Math.PI, 0, true);
-archShape.closePath();
-const arch = new ExtrudeGeometry(archShape, { depth: 1, bevelEnabled: false });
-arch.translate(0, 0, -0.5);
-
-export function Building({ domainId }: BuildingProps) {
+import type { BuildingTier } from "./buildingTier";
+import {
+  Block,
+  Roof,
+  Door,
+  Window,
+  Crates,
+  stone,
+  darkStone,
+  timber,
+  darkTimber,
+  slate,
+  cream,
+  arch,
+} from "./building-primitives";
+export function BuildingFamily({
+  domainId,
+  tier,
+}: {
+  domainId: DomainId;
+  tier: BuildingTier;
+}) {
   const models = {
-    "core-projects": <Workshop />,
-    "internal-team": <Guildhall />,
-    newsletters: <Windmill />,
+    "core-projects": <Workshop tower={tier >= 3} />,
+    "internal-team": <Guildhall bell={tier >= 3} />,
+    newsletters: <Windmill printing={tier >= 3} tall={tier === 4} />,
     "finance-bills": <Treasury />,
     "system-alerts": <SignalTower />,
     "social-events": <Canopy />,
     "shopping-delivery": <Harbor />,
     "low-priority": <SortingHouse />,
   };
-  return (
-    <group rotation={[0, -0.28, 0]} dispose={null}>
-      {models[domainId]}
-    </group>
-  );
+  return models[domainId];
 }
 
-function Block({
-  at,
-  size,
-  color,
-  rotation,
-}: {
-  at: Point;
-  size: Point;
-  color: string;
-  rotation?: Point;
-}) {
-  return (
-    <mesh position={at} rotation={rotation} castShadow receiveShadow>
-      <boxGeometry args={size} />
-      <meshStandardMaterial color={color} roughness={1} flatShading />
-    </mesh>
-  );
-}
-
-function Roof({ at, size, color }: { at: Point; size: Point; color: string }) {
-  return (
-    <mesh geometry={gable} position={at} scale={size} castShadow receiveShadow>
-      <meshStandardMaterial color={color} roughness={1} flatShading />
-    </mesh>
-  );
-}
-
-function Door({ at, size = [0.23, 0.43, 0.035] }: { at: Point; size?: Point }) {
-  return (
-    <group position={at}>
-      <Block at={[0, 0, 0]} size={size} color={darkTimber} />
-      <Block
-        at={[0.045, 0, 0.025]}
-        size={[0.025, 0.025, 0.015]}
-        color="#d9b574"
-      />
-    </group>
-  );
-}
-
-function Window({ at }: { at: Point }) {
-  return (
-    <group position={at}>
-      <Block at={[0, 0, 0]} size={[0.16, 0.2, 0.035]} color={darkTimber} />
-      <Block at={[0, 0, 0.025]} size={[0.105, 0.14, 0.02]} color="#c0c9bc" />
-      <Block at={[0, 0, 0.04]} size={[0.022, 0.14, 0.02]} color={timber} />
-    </group>
-  );
-}
-
-function Crates({ at }: { at: Point }) {
-  return (
-    <group position={at}>
-      <Block at={[0, 0.12, 0]} size={[0.24, 0.24, 0.24]} color="#cda26e" />
-      <Block at={[0, 0.12, 0.125]} size={[0.03, 0.24, 0.015]} color={cream} />
-      <Block at={[0, 0.12, 0.125]} size={[0.24, 0.025, 0.015]} color={cream} />
-      <Block at={[0.28, 0.09, 0.03]} size={[0.2, 0.18, 0.22]} color="#b88c5f" />
-    </group>
-  );
-}
-
-function Workshop() {
+function Workshop({ tower }: { tower: boolean }) {
   return (
     <group>
       <Block at={[0, 0.07, 0]} size={[1.7, 0.14, 1.3]} color={darkStone} />
@@ -122,30 +48,39 @@ function Workshop() {
       <Door at={[-0.25, 0.34, 0.505]} />
       <Window at={[0.15, 0.59, 0.505]} />
       <Window at={[-0.55, 0.59, 0.505]} />
-      <Block
-        at={[0.51, 0.79, -0.22]}
-        size={[0.45, 1.4, 0.5]}
-        color={darkStone}
-      />
-      <Block at={[0.51, 1.52, -0.22]} size={[0.57, 0.13, 0.61]} color={stone} />
-      {[-0.2, 0.2].flatMap((x) =>
-        [-0.22, 0.22].map((z) => (
+      {tower && (
+        <group>
+          {" "}
           <Block
-            key={`${x}-${z}`}
-            at={[0.51 + x, 1.66, -0.22 + z]}
-            size={[0.14, 0.18, 0.14]}
+            at={[0.51, 0.79, -0.22]}
+            size={[0.45, 1.4, 0.5]}
+            color={darkStone}
+          />
+          <Block
+            at={[0.51, 1.52, -0.22]}
+            size={[0.57, 0.13, 0.61]}
             color={stone}
           />
-        )),
+          {[-0.2, 0.2].flatMap((x) =>
+            [-0.22, 0.22].map((z) => (
+              <Block
+                key={`${x}-${z}`}
+                at={[0.51 + x, 1.66, -0.22 + z]}
+                size={[0.14, 0.18, 0.14]}
+                color={stone}
+              />
+            )),
+          )}
+          <Window at={[0.51, 1.18, 0.04]} />
+        </group>
       )}
-      <Window at={[0.51, 1.18, 0.04]} />
       <Block at={[-0.27, 0.06, 0.73]} size={[0.4, 0.12, 0.24]} color={stone} />
       <Crates at={[0.46, 0.15, 0.53]} />
     </group>
   );
 }
 
-function Guildhall() {
+function Guildhall({ bell }: { bell: boolean }) {
   return (
     <group>
       <Block at={[0, 0.25, 0]} size={[1.38, 0.13, 1.1]} color={timber} />
@@ -183,52 +118,66 @@ function Guildhall() {
       ))}
       <Block at={[-0.15, 0.12, 0.69]} size={[0.4, 0.12, 0.25]} color={timber} />
       <Block at={[-0.15, 0.22, 0.55]} size={[0.4, 0.1, 0.2]} color={timber} />
-      <group position={[0.35, 1.37, -0.29]}>
-        <Block at={[0, 0.07, 0]} size={[0.3, 0.12, 0.3]} color={timber} />
-        {[-0.12, 0.12].flatMap((x) =>
-          [-0.12, 0.12].map((z) => (
-            <Block
-              key={`${x}-${z}`}
-              at={[x, 0.25, z]}
-              size={[0.035, 0.3, 0.035]}
-              color={timber}
-            />
-          )),
-        )}
-        <mesh position={[0, 0.23, 0]} castShadow>
-          <cylinderGeometry args={[0.045, 0.09, 0.13, 8]} />
-          <meshStandardMaterial color="#b89b59" roughness={0.8} />
-        </mesh>
-        <Roof at={[0, 0.4, 0]} size={[0.44, 0.35, 0.42]} color="#71876a" />
-      </group>
+      {bell && (
+        <group position={[0.35, 1.37, -0.29]}>
+          <Block at={[0, 0.07, 0]} size={[0.3, 0.12, 0.3]} color={timber} />
+          {[-0.12, 0.12].flatMap((x) =>
+            [-0.12, 0.12].map((z) => (
+              <Block
+                key={`${x}-${z}`}
+                at={[x, 0.25, z]}
+                size={[0.035, 0.3, 0.035]}
+                color={timber}
+              />
+            )),
+          )}
+          <mesh position={[0, 0.23, 0]} castShadow>
+            <cylinderGeometry args={[0.045, 0.09, 0.13, 8]} />
+            <meshStandardMaterial color="#b89b59" roughness={0.8} />
+          </mesh>
+          <Roof at={[0, 0.4, 0]} size={[0.44, 0.35, 0.42]} color="#71876a" />
+        </group>
+      )}
     </group>
   );
 }
 
-function Windmill() {
+function Windmill({ printing, tall }: { printing: boolean; tall: boolean }) {
+  const lift = tall ? 0.5 : 0;
   return (
     <group>
-      <mesh position={[-0.32, 0.67, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.32, 0.48, 1.24, 12]} />
+      <mesh position={[-0.32, 0.67 + lift / 2, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.32, 0.48, 1.24 + lift, 12]} />
         <meshStandardMaterial color="#d8bd8e" roughness={1} flatShading />
       </mesh>
-      <mesh position={[-0.32, 1.45, 0]} castShadow>
+      <mesh position={[-0.32, 1.45 + lift, 0]} castShadow>
         <coneGeometry args={[0.5, 0.48, 12]} />
         <meshStandardMaterial color="#b67a5f" roughness={1} flatShading />
       </mesh>
       <Door at={[-0.32, 0.3, 0.43]} />
       <Block at={[0.46, 0.3, -0.13]} size={[0.83, 0.5, 0.72]} color={stone} />
-      {[-0.05, 0.35, 0.75].map((x) => (
+      {printing ? (
+        [-0.05, 0.35, 0.75].map((x) => (
+          <Roof
+            key={x}
+            at={[x, 0.55, -0.13]}
+            size={[0.44, 0.5, 0.84]}
+            color="#9d715b"
+          />
+        ))
+      ) : (
         <Roof
-          key={x}
-          at={[x, 0.55, -0.13]}
-          size={[0.44, 0.5, 0.84]}
+          at={[0.46, 0.55, -0.13]}
+          size={[1.02, 0.5, 0.9]}
           color="#9d715b"
         />
-      ))}
+      )}
       <Window at={[0.27, 0.32, 0.25]} />
       <Window at={[0.63, 0.32, 0.25]} />
-      <group position={[-0.32, 1.32, 0.45]} rotation={[0, 0, Math.PI / 4]}>
+      <group
+        position={[-0.32, 1.32 + lift, 0.45]}
+        rotation={[0, 0, Math.PI / 4]}
+      >
         {[0, 1, 2, 3].map((index) => (
           <group key={index} rotation={[0, 0, (index * Math.PI) / 2]}>
             <Block at={[0, 0.48, 0]} size={[0.045, 1, 0.055]} color={timber} />

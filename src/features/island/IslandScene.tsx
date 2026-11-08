@@ -3,7 +3,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
 import { ExtrudeGeometry, Shape } from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
-import { Building } from "./Building";
+import { Building } from "../building/Building";
 import { SceneLabels } from "./SceneLabels";
 import {
   tileRadius as radius,
@@ -192,7 +192,7 @@ function Archipelago({ domains, onDomain }: IslandSceneProps) {
               document.body.style.cursor = "";
             }}
           >
-            <Building domainId={domain.id} />
+            <Building domainId={domain.id} unreadCount={domain.unreadCount} />
           </group>
           {domain.id !== "low-priority" && <Trees />}
         </group>
@@ -225,7 +225,10 @@ function DomainBoard({
               document.body.style.cursor = "";
             }}
           >
-            <Building domainId={domain.id} />
+            <Building
+              domainId={domain.id}
+              unreadCount={subcategory.unreadCount}
+            />
           </group>
         </group>
       ))}

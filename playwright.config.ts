@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 export default defineConfig({
-  testDir: "./src/features/mailbox",
+  testDir: "./src/features",
   testMatch: "**/*.e2e.ts",
   workers: 1,
   timeout: 60_000,
