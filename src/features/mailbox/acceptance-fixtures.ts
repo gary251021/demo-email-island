@@ -172,7 +172,8 @@ static now(){return now();}
 };`,
     );
     const port =
-      Number(process.env.EMAIL_ISLAND_E2E_PORT ?? 3210) + testInfo.workerIndex;
+      Number(process.env.EMAIL_ISLAND_E2E_PORT ?? 3210) +
+      testInfo.parallelIndex;
     const url = `http://127.0.0.1:${port}`;
     let output = "";
     let ruleVersion = "1";

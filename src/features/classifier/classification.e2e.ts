@@ -200,8 +200,14 @@ async function openCategory(page: Page, domain: string, category: string) {
   if (await close.isVisible()) await close.click();
   const back = page.getByRole("button", { name: "返回群島", exact: true });
   if (await back.isVisible()) await back.click();
-  await page.getByRole("button", { name: new RegExp(`^${domain}`) }).click();
-  await page.getByRole("button", { name: category, exact: true }).click();
+  await page
+    .getByRole("button")
+    .and(page.getByText(domain, { exact: true }))
+    .click();
+  await page
+    .getByRole("button")
+    .and(page.getByText(category, { exact: true }))
+    .click();
   await expect(
     page.getByRole("dialog", { name: category + "郵件" }),
   ).toBeVisible();
