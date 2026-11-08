@@ -480,3 +480,69 @@ button.island-label:hover {
 .scene-label-position button {
   pointer-events: auto;
 }
+
+.account-nav {
+  position: absolute;
+  top: 25px;
+  right: 28px;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 215px;
+}
+.account-button {
+  padding: 9px 17px;
+  border: 0;
+  border-radius: 999px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: var(--control-shadow);
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 600;
+}
+.account-button:hover:enabled {
+  background: #f4ead4;
+}
+.account-button:disabled {
+  opacity: 0.6;
+}
+.account-note {
+  margin: 0;
+  color: #24463d;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.account-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  color: #754b37;
+  background: #f0e3d3;
+  font-size: 11px;
+}
+.account-error .text-button {
+  color: inherit;
+  font-size: 11px;
+}
+.has-mail-panel .account-nav {
+  right: 444px;
+}
+@media (max-width: 700px) {
+  .account-nav,
+  .has-mail-panel .account-nav {
+    top: 16px;
+    right: 15px;
+  }
+  .account-button {
+    padding: 8px 15px;
+    font-size: 13px;
+  }
+  .has-mail-panel .mail-panel {
+    top: 112px;
+  }
+}

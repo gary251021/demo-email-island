@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { ClientOnly, useNavigate } from "@tanstack/react-router";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Overview } from "../../lib/mailbox";
 import { authClient } from "../session/auth-client";
+import { AccountNav } from "../session/AccountNav";
 import { overviewQueryOptions } from "../mailbox/mailbox.queries";
 import { MailPanel } from "../mailbox/MailPanel";
 import { IslandScene } from "./IslandScene";
@@ -39,6 +40,13 @@ export function IslandExperience({
     queryClient.clear();
     void navigate({ to: "/", replace: true });
   }, [queryClient, navigate]);
+  const logout = useMutation({
+    mutationFn: async () => {
+      const result = await authClient.signOut();
+      if (result.error) throw new Error(result.error.message);
+    },
+    onSuccess: leave,
+  });
   useEffect(() => {
     if (
       !session.isPending &&
@@ -62,6 +70,12 @@ export function IslandExperience({
       className={`island-experience${subcategory ? " has-mail-panel" : ""}`}
       aria-label={domain ? `${domain.name}板塊` : "郵件群島"}
     >
+      <AccountNav
+        action="登出"
+        pending={logout.isPending}
+        error={logout.isError}
+        onAction={() => logout.mutate()}
+      />
       <ClientOnly
         fallback={
           <p className="scene-message" role="status">

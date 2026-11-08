@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useHydrated, useNavigate } from "@tanstack/react-router";
 import { authClient } from "../session/auth-client";
+import { AccountNav } from "../session/AccountNav";
 import { getIdentity } from "../session/session.functions";
 import { startDemo } from "./mailbox.functions";
 
@@ -28,6 +29,11 @@ export default function DemoEntry() {
   }
   return (
     <main className="entry-screen">
+      <AccountNav
+        action="登入"
+        pending={pending}
+        onAction={() => void enter()}
+      />
       <div className="entry-watermark" aria-hidden="true">
         島
       </div>

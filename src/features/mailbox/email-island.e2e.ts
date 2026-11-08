@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { Locator, Page } from "@playwright/test";
 import {
   test,
   expect,
@@ -447,9 +450,273 @@ test("AC-12 keyboard-and-scene-navigation", async ({
   if (!box) throw new Error("Missing projected building anchor");
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await expect(page.getByRole("button", { name: /Q4 報價/ })).toBeVisible();
-  await expect(page.locator("nav, aside, footer")).toHaveCount(0);
+  await expect(
+    page.getByRole("navigation", { name: "帳戶導覽", exact: true }),
+  ).toHaveCount(1);
+  await expect(
+    page.locator('nav:not([aria-label="帳戶導覽"]), aside, footer'),
+  ).toHaveCount(0);
   await page.setViewportSize({ width: 1280, height: 720 });
   await expect(page.getByRole("button", { name: /Q4 報價/ })).toBeVisible();
   await page.screenshot();
   expect(browserErrors).toEqual([]);
 });
+
+test("NAV-1 account-login-initializes-mailbox", async ({
+  page,
+  app,
+  browserErrors,
+}) => {
+  await page.goto(app.url);
+  await expect(
+    page.getByRole("button", { name: "Google 登入", exact: true }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "進入群島", exact: true }),
+  ).toBeVisible();
+  const nav = page.getByRole("navigation", { name: "帳戶導覽", exact: true });
+  await expect(nav).toHaveCount(1);
+  const login = nav.getByRole("button", { name: "登入", exact: true });
+  await expect(login).toBeEnabled();
+  await captureAccountState(page, "entry-desktop", [
+    page.getByRole("heading", { name: "郵件群島", exact: true }),
+  ]);
+  await login.click();
+  await expect(
+    page.getByRole("button", { name: "核心專案", exact: true }),
+  ).toBeVisible();
+  expect((await overview(page)).domains.map((domain) => domain.name)).toEqual(
+    domainNames,
+  );
+  expect((await identity(page)).ownerKey).toBeTruthy();
+  expect((await q4(page)).mails).toHaveLength(3);
+  await expect(
+    nav.getByRole("button", { name: "登出", exact: true }),
+  ).toBeVisible();
+  await captureAccountState(page, "island-desktop", []);
+  expect(browserErrors).toEqual([]);
+});
+
+test("NAV-2 logout-revokes-session-and-protects-mailbox", async ({
+  page,
+  app,
+  browserErrors,
+}) => {
+  await enter(page, app.url);
+  await readQ4(page);
+  const oldOwner = await identity(page);
+  const oldMail = await q4(page);
+  const protectedUrl = page.url();
+  await captureAccountState(page, "card-desktop", [
+    page.getByRole("button", { name: "返回群島", exact: true }),
+    page.getByRole("button", { name: "關閉郵件", exact: true }),
+    page.getByRole("heading", { name: "Q4 報價", exact: true }),
+  ]);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await captureAccountState(page, "card-mobile", [
+    page.getByRole("button", { name: "返回群島", exact: true }),
+    page.getByRole("button", { name: "關閉郵件", exact: true }),
+    page.getByRole("heading", { name: "Q4 報價", exact: true }),
+  ]);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  const nav = page.getByRole("navigation", { name: "帳戶導覽", exact: true });
+  await nav.getByRole("button", { name: "登出", exact: true }).click();
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  const session = await page.request.get(`${app.url}/api/auth/get-session`);
+  expect(session.ok()).toBe(true);
+  expect(await session.json()).toBeNull();
+  expect(resultData(await rpc(page, "getIdentity"))).toBeNull();
+  await page.goBack();
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.goto(protectedUrl);
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("article", { name: "請確認報價項目", exact: true }),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  await nav.getByRole("button", { name: "登入", exact: true }).click();
+  await expect(
+    page.getByRole("button", { name: "核心專案", exact: true }),
+  ).toBeVisible();
+  expect((await identity(page)).ownerKey).not.toBe(oldOwner.ownerKey);
+  const freshMail = await q4(page);
+  expect(freshMail.mail.id).not.toBe(oldMail.mail.id);
+  expect(freshMail.subcategory.unreadCount).toBe(3);
+  expect(freshMail.mail.readAt).toBeNull();
+  for (const method of ["getMail", "markMailRead"] as const)
+    expect(await rpc(page, method, oldMail.input)).toEqual({
+      ok: false,
+      error: "NOT_FOUND",
+    });
+  expect(
+    await rpc(page, "listMail", {
+      domainId: oldMail.input.domainId,
+      subcategoryId: oldMail.input.subcategoryId,
+    }),
+  ).toEqual({ ok: false, error: "NOT_FOUND" });
+  const database = new DatabaseSync(app.dbPath);
+  try {
+    expect(
+      database
+        .prepare("SELECT read_at FROM mails WHERE owner_id = ? AND id = ?")
+        .get(oldOwner.ownerKey, oldMail.mail.id)?.read_at,
+    ).toBe(oldMail.mail.readAt);
+  } finally {
+    database.close();
+  }
+  await page.getByRole("button", { name: "核心專案", exact: true }).click();
+  await captureAccountState(page, "core-desktop", [
+    page.getByRole("button", { name: "返回群島", exact: true }),
+    page.getByRole("heading", { name: "核心專案", exact: true }),
+  ]);
+  expect(browserErrors).toEqual([]);
+});
+
+test("NAV-3 keyboard-pending-and-logout-retry", async ({
+  page,
+  app,
+  browserErrors,
+}) => {
+  let releaseLogin = () => {};
+  const loginGate = new Promise<void>((resolve) => {
+    releaseLogin = resolve;
+  });
+  let signInRequests = 0;
+  await page.route("**/api/auth/sign-in/anonymous", async (route) => {
+    signInRequests++;
+    await loginGate;
+    await route.continue();
+  });
+  await page.goto(app.url);
+  const nav = page.getByRole("navigation", { name: "帳戶導覽", exact: true });
+  const login = nav.getByRole("button", { name: "登入", exact: true });
+  await expect(login).toBeEnabled();
+  await login.focus();
+  await page.keyboard.press("Enter");
+  await expect(login).toBeDisabled();
+  await expect(
+    page.getByRole("button", { name: "進入群島", exact: true }),
+  ).toBeDisabled();
+  await login.evaluate((button: HTMLButtonElement) => {
+    button.click();
+    button.click();
+  });
+  await expect.poll(() => signInRequests).toBe(1);
+  releaseLogin();
+  await expect(
+    page.getByRole("button", { name: "核心專案", exact: true }),
+  ).toBeVisible();
+  const owner = await identity(page);
+  expect((await q4(page)).mails).toHaveLength(3);
+  let signOutRequests = 0;
+  let releaseLogout = () => {};
+  const logoutGate = new Promise<void>((resolve) => {
+    releaseLogout = resolve;
+  });
+  await page.route("**/api/auth/sign-out", async (route) => {
+    signOutRequests++;
+    if (signOutRequests === 1) {
+      await route.abort("failed");
+      return;
+    }
+    await logoutGate;
+    await route.continue();
+  });
+  const logout = nav.getByRole("button", { name: "登出", exact: true });
+  await logout.focus();
+  await page.keyboard.press("Enter");
+  await expect(nav.getByRole("alert")).toContainText("登出失敗");
+  expect(signOutRequests).toBe(1);
+  expect(await identity(page)).toEqual(owner);
+  await expect(
+    page.getByRole("button", { name: "核心專案", exact: true }),
+  ).toBeVisible();
+  await expect(logout).toBeEnabled();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await captureAccountState(page, "logout-failure-mobile", []);
+  const retry = nav.getByRole("button", { name: "重試", exact: true });
+  await retry.focus();
+  await page.keyboard.press("Enter");
+  await expect(logout).toBeDisabled();
+  await expect(retry).toHaveCount(0);
+  await expect.poll(() => signOutRequests).toBe(2);
+  releaseLogout();
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  expect(
+    await (await page.request.get(`${app.url}/api/auth/get-session`)).json(),
+  ).toBeNull();
+  expect(
+    browserErrors.filter(
+      (error) => error !== "Failed to load resource: net::ERR_FAILED",
+    ),
+  ).toEqual([]);
+  expect(
+    browserErrors.filter(
+      (error) => error === "Failed to load resource: net::ERR_FAILED",
+    ),
+  ).toHaveLength(1);
+});
+
+async function captureAccountState(
+  page: Page,
+  name: string,
+  clearOf: Locator[],
+) {
+  const directory = resolve(
+    process.env.EMAIL_ISLAND_NAV_EVIDENCE_DIR ?? "test-results/nav-evidence",
+  );
+  mkdirSync(directory, { recursive: true });
+  await page.mouse.move(1, 1);
+  await page.evaluate(async () => {
+    await Promise.all(
+      document.getAnimations().map((animation) => animation.finished),
+    );
+  });
+  const nav = page.getByRole("navigation", { name: "帳戶導覽", exact: true });
+  await expect(nav).toBeVisible();
+  const bounds = await nav.boundingBox();
+  if (!bounds) throw new Error("Account navigation is not visible");
+  const targets = [];
+  for (const target of clearOf) {
+    const box = await target.boundingBox();
+    if (!box)
+      throw new Error("Expected navigation or mail control is not visible");
+    expect(
+      bounds.x < box.x + box.width &&
+        bounds.x + bounds.width > box.x &&
+        bounds.y < box.y + box.height &&
+        bounds.y + bounds.height > box.y,
+    ).toBe(false);
+    targets.push({ text: await target.textContent(), bounds: box });
+  }
+  expect(bounds.x).toBeGreaterThanOrEqual(0);
+  expect(bounds.x + bounds.width).toBeLessThanOrEqual(
+    page.viewportSize()?.width ?? 0,
+  );
+  await page.screenshot({ path: `${directory}/${name}.png` });
+  writeFileSync(
+    `${directory}/${name}.json`,
+    JSON.stringify(
+      {
+        url: page.url(),
+        viewport: page.viewportSize(),
+        navigation: bounds,
+        clearOf: targets,
+      },
+      null,
+      2,
+    ),
+  );
+}
