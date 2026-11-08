@@ -62,6 +62,9 @@ export const mailDetailSchema = mailSummarySchema.extend({
 export type MailSummary = z.infer<typeof mailSummarySchema>;
 export type MailDetail = z.infer<typeof mailDetailSchema>;
 const subcategorySchema = z.object({
+  origin: z.enum(["seed", "split"]),
+  automaticEligible: z.boolean(),
+  layoutSlot: z.number().int().nonnegative(),
   id: z.uuid(),
   name: z.string(),
   unreadCount: z.number().int().nonnegative(),

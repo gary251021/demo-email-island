@@ -155,6 +155,40 @@ test("AC-5 zero-unread-keeps-navigation", async ({ page, app }) => {
   await enter(page, app.url);
   await page.getByRole("button", { name: /核心專案/ }).click();
   await page.getByRole("button", { name: /設計審批/ }).click();
+  await expect(
+    page.getByRole("dialog", { name: "設計審批郵件", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "郵件列表", exact: true }),
+  ).toBeFocused();
+  await page.getByRole("button", { name: /^設計審批，/ }).focus();
+  const quick = page.getByRole("button", {
+    name: "設計審批：封存 1 封未讀",
+    exact: true,
+  });
+  await expect(quick).toBeVisible();
+  let releasePreview!: () => void;
+  const previewGate = new Promise<void>(
+    (resolve) => (releasePreview = resolve),
+  );
+  let pendingPreviews = 0;
+  let failPreview = true;
+  await page.route("**/_serverFn/**", async (route) => {
+    const encoded = new URL(route.request().url()).pathname.split("/").at(-1)!;
+    if (
+      Buffer.from(encoded, "base64url")
+        .toString()
+        .includes("getQuickArchivePreview_")
+    ) {
+      pendingPreviews++;
+      await previewGate;
+      if (failPreview) {
+        await route.abort("failed");
+        return;
+      }
+    }
+    await route.continue();
+  });
   await page.getByRole("button", { name: /首頁設計等待確認/ }).click();
   await expect(
     page.getByText("最新的首頁設計已完成", { exact: false }),
@@ -171,6 +205,21 @@ test("AC-5 zero-unread-keeps-navigation", async ({ page, app }) => {
   await expect(page.getByLabel("設計審批未讀 0", { exact: true })).toHaveText(
     "未讀 0",
   );
+  try {
+    await expect.poll(() => pendingPreviews).toBeGreaterThan(0);
+    // A fresh real-server preview is pending; its old unread snapshot is not an action.
+    await expect(quick).toHaveCount(0);
+  } finally {
+    releasePreview();
+  }
+  await expect(page.getByRole("alert")).toHaveText("未能封存，請重試。");
+  await expect(quick).toHaveCount(0);
+  failPreview = false;
+  const foundation = page.getByRole("button", { name: /^設計審批，/ });
+  await foundation.blur();
+  await foundation.focus();
+  await expect(page.getByRole("alert")).toHaveCount(0);
+  await expect(quick).toHaveCount(0);
   await page.getByRole("button", { name: /設計審批/ }).click();
   await page.getByRole("button", { name: /首頁設計等待確認/ }).click();
   await expect(

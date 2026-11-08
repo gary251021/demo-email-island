@@ -321,7 +321,7 @@ test("missing-template-and-existing-owner", async ({ page, browser, app }) => {
   const before = await list(page, input);
   expect(before.timeline).toBeNull();
   app.sql(
-    `INSERT INTO subcategories(id,owner_id,seed_key,domain_id,name) VALUES('11111111-1111-4111-8111-111111111111','${input.ownerKey}','empty','finance-bills','空分類')`,
+    `INSERT INTO subcategories(id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES('11111111-1111-4111-8111-111111111111','${input.ownerKey}','empty','finance-bills','空分類',1,'seed',40)`,
   );
   await page.goto("about:blank");
   await app.restart();
@@ -527,7 +527,7 @@ test("keyboard-close-preserves-newer-focus-during-navigation", async ({
   const input = await story(page);
   configureStory(app.dbPath, input, 12);
   app.sql(
-    `INSERT INTO subcategories(id,owner_id,seed_key,domain_id,name) VALUES('22222222-2222-4222-8222-222222222222','${input.ownerKey}','focus-empty','finance-bills','鍵盤空分類')`,
+    `INSERT INTO subcategories(id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES('22222222-2222-4222-8222-222222222222','${input.ownerKey}','focus-empty','finance-bills','鍵盤空分類',1,'seed',41)`,
   );
   await page.reload();
   await openStory(page);

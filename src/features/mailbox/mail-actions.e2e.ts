@@ -266,6 +266,7 @@ test("AC-5 snapshot changes and repeat request", async ({
     );
     await quick.click();
     await expect(page.getByRole("alert")).toContainText("郵件已變動");
+    await expect(categoryButton(page)).toBeFocused();
     expect(await list(page, scopeOf(state.input), "archived")).toHaveLength(0);
     const one = page.getByRole("button", {
       name: "Q4 報價：封存 1 封未讀",
@@ -305,6 +306,7 @@ test("AC-5 snapshot changes and repeat request", async ({
   );
   await oldQuick.click();
   await expect(page.getByRole("alert")).toContainText("郵件已變動");
+  await expect(categoryButton(page, "設計審批")).toBeFocused();
   expect(await list(page, input, "archived")).toHaveLength(0);
   const freshQuick = page.getByRole("button", {
     name: "設計審批：封存 2 封未讀",

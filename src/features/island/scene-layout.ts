@@ -13,17 +13,20 @@ export const tilePositions: Record<DomainId, [number, number, number]> = {
   "low-priority": [7.5, 0, 4.05],
 };
 
-export function subcategoryPositions(
-  count: number,
-): [number, number, number][] {
-  if (count === 1) return [[0, 0, 0]];
-  if (count === 2)
-    return [
-      [-1.65, 0, 0],
-      [1.65, 0, 0],
-    ];
-  return Array.from({ length: count }, (_, index) => {
-    const angle = (index / count) * Math.PI * 2 - Math.PI / 2;
-    return [Math.cos(angle) * 2.05, 0, Math.sin(angle) * 2.05];
-  });
+// Slots are persistent, never inferred from the current category count.
+export function subcategoryPosition(slot: number): [number, number, number] {
+  if (slot === 0) return [-1.8, 0, 0];
+  if (slot === 1) return [1.8, 0, 0];
+  let ring = 1,
+    index = slot - 2;
+  while (index >= ring * 8) {
+    index -= ring * 8;
+    ring++;
+  }
+  const angle = (index / (ring * 8)) * Math.PI * 2 - Math.PI / 2;
+  return [
+    Math.cos(angle) * (6.5 + 5.2 * (ring - 1)),
+    0,
+    Math.sin(angle) * (6.5 + 5.2 * (ring - 1)),
+  ];
 }

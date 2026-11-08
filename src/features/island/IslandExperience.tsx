@@ -1,6 +1,8 @@
+import { BacklogCard } from "../backlog/BacklogCard";
+import { BacklogEntry } from "../backlog/BacklogEntry";
 import { ClassificationStatus } from "../classifier/ClassificationStatus";
 import { CategoryEditor } from "../classifier/CategoryEditor";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ClientOnly, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { Overview } from "../../lib/mailbox";
@@ -29,6 +31,7 @@ export function IslandExperience({
   selection,
   onNavigate,
 }: IslandExperienceProps) {
+  const [backlogId, setBacklogId] = useState<string | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const session = authClient.useSession();
@@ -71,14 +74,20 @@ export function IslandExperience({
         ?.focus();
     previousSubcategory.current = selection.subcategory;
   }, [selection.subcategory]);
+  const backlogCategory = domain?.subcategories.find(
+    (entry) => entry.id === backlogId,
+  );
   return (
     <main
       className={
-        subcategory ? "island-experience has-mail-panel" : "island-experience"
+        subcategory || backlogCategory
+          ? "island-experience has-mail-panel"
+          : "island-experience"
       }
       aria-label={domain ? `${domain.name}板塊` : "郵件群島"}
     >
       <ClassificationStatus ownerKey={ownerKey} />
+      {domain && <h1 className="domain-heading island-label">{domain.name}</h1>}
       <AccountNav
         action="登出"
         pending={logout.isPending}
@@ -98,18 +107,25 @@ export function IslandExperience({
           domains={query.data.domains}
           domain={domain}
           selectedSubcategory={selection.subcategory}
-          panelOpen={Boolean(subcategory)}
-          onDomain={(domainId) => onNavigate({ domain: domainId })}
-          onSubcategory={(subcategoryId) =>
-            onNavigate({ domain: domain?.id, subcategory: subcategoryId })
-          }
+          panelOpen={Boolean(subcategory || backlogCategory)}
+          onDomain={(domainId) => {
+            setBacklogId(null);
+            onNavigate({ domain: domainId });
+          }}
+          onSubcategory={(subcategoryId) => {
+            setBacklogId(null);
+            onNavigate({ domain: domain?.id, subcategory: subcategoryId });
+          }}
         />
       </ClientOnly>
       {domain && (
         <button
           type="button"
           className="island-back island-label"
-          onClick={() => onNavigate({})}
+          onClick={() => {
+            setBacklogId(null);
+            onNavigate({});
+          }}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="m11 5-7 7 7 7M4 12h16" />
@@ -134,7 +150,50 @@ export function IslandExperience({
           身分暫時無法確認，請稍後再試。
         </p>
       )}
-      {domain && subcategory && (
+      {domain ? (
+        <BacklogEntry
+          key={`entry-${subcategory?.id ?? domain.id}`}
+          ownerKey={ownerKey}
+          domain={domain}
+          category={subcategory}
+          onOpen={() => setBacklogId(subcategory?.id ?? null)}
+          onDomain={() =>
+            document
+              .getElementById(`subcategory-${domain.subcategories[0]?.id}`)
+              ?.focus()
+          }
+        />
+      ) : (
+        query.data.domains
+          .filter((entry) => entry.unreadCount >= 30)
+          .slice(0, 1)
+          .map((entry) => (
+            <BacklogEntry
+              key={entry.id}
+              ownerKey={ownerKey}
+              domain={entry}
+              onOpen={() => {}}
+              onDomain={() => onNavigate({ domain: entry.id })}
+            />
+          ))
+      )}
+      {domain && backlogCategory && (
+        <BacklogCard
+          key={`card-${backlogCategory.id}`}
+          ownerKey={ownerKey}
+          domain={domain}
+          category={backlogCategory}
+          onUnauthenticated={leave}
+          onClose={() => {
+            setBacklogId(null);
+            onNavigate(closeMailPanel(selection));
+            document
+              .getElementById(`subcategory-${backlogCategory.id}`)
+              ?.focus();
+          }}
+        />
+      )}
+      {domain && subcategory && !backlogCategory && (
         <MailPanel
           renderCategoryEditor={(mailId) => (
             <CategoryEditor

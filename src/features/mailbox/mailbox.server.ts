@@ -18,7 +18,7 @@ import { domains, seedCategories, storySeed } from "./mockSeed.server";
 
 function seedMailbox(ownerKey: string) {
   const insertCategory = db.prepare(
-    "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name) VALUES (?,?,?,?,?)",
+    "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES (?,?,?,?,?,1,'seed',?)",
   );
   for (const category of seedCategories) {
     const categoryId = randomUUID();
@@ -28,6 +28,9 @@ function seedMailbox(ownerKey: string) {
       category.key,
       category.domainId,
       category.name,
+      seedCategories
+        .filter((entry) => entry.domainId === category.domainId)
+        .findIndex((entry) => entry.key === category.key),
     );
     if (category.key === storySeed.categoryKey) {
       for (const [index, source] of storySeed.sourceMails.entries()) {
@@ -87,7 +90,7 @@ export function initializeMailbox(
 export function readOverview(ownerKey: string) {
   const categories = db
     .prepare(
-      `SELECT s.id,s.domain_id,s.name,
+      `SELECT s.id,s.domain_id,s.name,s.origin,s.automatic_eligible,s.layout_slot,
     COUNT(CASE WHEN m.archived_at IS NULL AND m.read_at IS NULL THEN m.id END) AS unread_count,
     COUNT(CASE WHEN m.archived_at IS NULL AND m.requires_reply = 1 AND NOT EXISTS (SELECT 1 FROM mail_replies r WHERE r.owner_id = m.owner_id AND r.mail_id = m.id) THEN m.id END) AS pending_count
     FROM subcategories s LEFT JOIN mails m ON m.owner_id = s.owner_id AND m.subcategory_id = s.id
@@ -108,6 +111,9 @@ export function readOverview(ownerKey: string) {
         .map((category) => ({
           id: category.id,
           name: category.name,
+          origin: category.origin,
+          automaticEligible: Boolean(category.automatic_eligible),
+          layoutSlot: category.layout_slot,
           unreadCount: category.unread_count,
           pendingReplyCount: category.pending_count,
         }));
@@ -241,11 +247,13 @@ export function listClassificationCandidates(ownerKey: string) {
     id: domain.id,
     name: domain.name,
     description: null,
-    subcategories: domain.subcategories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      description: null,
-    })),
+    subcategories: domain.subcategories
+      .filter((category) => category.automaticEligible)
+      .map((category) => ({
+        id: category.id,
+        name: category.name,
+        description: null,
+      })),
   }));
 }
 
@@ -400,4 +408,49 @@ export function readActiveUnreadIds(ownerKey: string, input: MailScope) {
     )
     .all(ownerKey, input.subcategoryId)
     .map((mail) => String(mail.id));
+}
+
+// The caller owns the encompassing snapshot/confirmation transaction.
+export function readBacklogScope(ownerKey: string, subcategoryId: string) {
+  const category = db
+    .prepare(
+      "SELECT id,domain_id AS domainId,name FROM subcategories WHERE owner_id=? AND id=?",
+    )
+    .get(ownerKey, subcategoryId);
+  if (!category) throw new Error("NOT_FOUND");
+  return {
+    category: {
+      id: String(category.id),
+      domainId: domainIdSchema.parse(category.domainId),
+      name: String(category.name),
+    },
+    mails: getClassificationInputs(ownerKey).filter(
+      (mail) =>
+        mail.subcategoryId === subcategoryId && mail.archivedAt === null,
+    ),
+  };
+}
+export function createSplitCategory(
+  ownerKey: string,
+  domainId: z.infer<typeof domainIdSchema>,
+  name: string,
+) {
+  if (
+    db
+      .prepare(
+        "SELECT id FROM subcategories WHERE owner_id=? AND domain_id=? AND name=?",
+      )
+      .get(ownerKey, domainId, name)
+  )
+    throw new Error("NAME_CONFLICT");
+  const slot = db
+    .prepare(
+      "SELECT MAX(COALESCE(MAX(layout_slot),1),1)+1 AS slot FROM subcategories WHERE owner_id=? AND domain_id=?",
+    )
+    .get(ownerKey, domainId);
+  const id = randomUUID();
+  db.prepare(
+    "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES (?,?,NULL,?,?,0,'split',?)",
+  ).run(id, ownerKey, domainId, name, Number(slot?.slot));
+  return id;
 }

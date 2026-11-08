@@ -1,3 +1,4 @@
+import { projectedModelBounds, placeLabel } from "./label-layout";
 import { useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
@@ -8,7 +9,7 @@ import { Vector3 } from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
 import { QuickArchive } from "../mailbox/QuickArchive";
 import { getBuildingTier } from "../../lib/buildingTier";
-import { subcategoryPositions, tilePositions } from "./scene-layout";
+import { subcategoryPosition, tilePositions } from "./scene-layout";
 
 type Domain = Overview["domains"][number];
 type SceneLabelsProps = {
@@ -45,16 +46,80 @@ const screenCenter = (
 
 export function SceneLabels(props: SceneLabelsProps) {
   const elements = useRef(new Map<string, HTMLDivElement>());
-  const get = useThree((state) => state.get);
+  const placements = useRef(new Map<string, { x: number; y: number }>());
+  const invalidate = useThree((state) => state.invalidate);
   const labels = useMemo(
     () => createLabels(props.domains, props.domain),
     [props.domains, props.domain],
   );
-  useFrame(({ camera, size }) => {
-    for (const label of labels) {
+  useFrame(({ camera, size, scene }) => {
+    const models = projectedModelBounds(
+      scene,
+      camera,
+      size,
+      props.domain?.subcategories.map((category) => category.id) ?? [],
+    );
+    const occupied: DOMRect[] = [...models.values()];
+    const ordered = labels.toSorted((a, b) => {
+      const ay = new Vector3(...a.position).project(camera).y;
+      const by = new Vector3(...b.position).project(camera).y;
+      return by - ay;
+    });
+    for (const label of ordered) {
       const element = elements.current.get(label.key);
       if (!element) continue;
+      if (label.kind === "anchor") {
+        const model = models.get(label.resourceId);
+        const actual = scene.getObjectByName(`building-${label.resourceId}`);
+        if (actual)
+          element.dataset.worldAnchor = JSON.stringify(
+            actual.getWorldPosition(new Vector3()).toArray(),
+          );
+        if (model)
+          element.dataset.modelBounds = JSON.stringify({
+            x: model.x,
+            y: model.y,
+            width: model.width,
+            height: model.height,
+          });
+      }
       positionElement(element, label.position, { camera, size });
+      if (
+        !props.domain ||
+        (label.kind !== "subcategory" && label.kind !== "token")
+      ) {
+        element.dataset.layoutReady = "true";
+        element.style.visibility = "visible";
+        continue;
+      }
+      projection.set(...label.position).project(camera);
+      const bounds = element.getBoundingClientRect();
+      const desired = {
+        x: ((projection.x + 1) * size.width) / 2,
+        y: ((-projection.y + 1) * size.height) / 2,
+      };
+      const frameKey = `${label.key}:${bounds.width}:${bounds.height}:${camera.matrixWorldInverse.elements.join(",")}:${camera.projectionMatrix.elements.join(",")}`;
+      const { x, y } = placeLabel(
+        {
+          desired,
+          previous: placements.current.get(frameKey),
+          label: bounds,
+          size,
+        },
+        occupied,
+      );
+      placements.current.set(frameKey, { x, y });
+      element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      const dx = desired.x - x,
+        dy = desired.y - y;
+      const length = Math.hypot(dx, dy);
+      element.style.setProperty(
+        "--leader-length",
+        `${length > 12 ? length : 0}px`,
+      );
+      element.style.setProperty("--leader-angle", `${Math.atan2(dy, dx)}rad`);
+      element.dataset.layoutReady = "true";
+      element.style.visibility = "visible";
     }
   });
   return (
@@ -70,11 +135,18 @@ export function SceneLabels(props: SceneLabelsProps) {
           {labels.map((label) => (
             <div
               key={label.key}
-              className="scene-label-position"
+              className={
+                label.kind === "subcategory" || label.kind === "token"
+                  ? "scene-label-position placed-label"
+                  : "scene-label-position"
+              }
               ref={(element) => {
                 if (element) {
                   elements.current.set(label.key, element);
-                  positionElement(element, label.position, get());
+                  if (element.dataset.layoutReady !== "true") {
+                    element.style.visibility = "hidden";
+                    invalidate();
+                  }
                 } else elements.current.delete(label.key);
               }}
             >
@@ -180,18 +252,10 @@ function createLabels(domains: Overview["domains"], domain?: Domain): Label[] {
         },
       ];
     });
-  const positions = subcategoryPositions(domain.subcategories.length);
-  const labels: Label[] = [
-    {
-      key: "domain-title",
-      kind: "title",
-      text: domain.name,
-      position: [0, 0.1, -3.4],
-    },
-  ];
-  domain.subcategories.forEach((subcategory, index) => {
-    const position = positions[index];
-    if (!position) return;
+
+  const labels: Label[] = [];
+  domain.subcategories.forEach((subcategory) => {
+    const position = subcategoryPosition(subcategory.layoutSlot);
     const [x, , z] = position;
     labels.push(
       {
