@@ -126,6 +126,18 @@ test("AC-4 read-updates-all-unread-counts-once", async ({ page, app }) => {
   await page.getByRole("button", { name: "返回列表", exact: true }).click();
   const readRow = subjectButton(page, "請確認報價項目");
   await expect(readRow).not.toContainText("未讀");
+  await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
+  await expect(page.getByLabel("Q4 報價未讀 2", { exact: true })).toHaveText(
+    "未讀 2",
+  );
+  await expect(page.getByLabel("設計審批未讀 1", { exact: true })).toHaveText(
+    "未讀 1",
+  );
+  await page.getByRole("button", { name: "返回群島", exact: true }).click();
+  await expect(page.getByLabel("核心專案未讀 3", { exact: true })).toHaveText(
+    "未讀 3",
+  );
+  await openQ4(page);
   await readRow.click();
   await expect(
     page.getByText("第四季的報價已整理完成", { exact: false }),
