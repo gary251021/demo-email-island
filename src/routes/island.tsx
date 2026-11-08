@@ -21,16 +21,22 @@ export const Route = createFileRoute("/island")({
     return { identity };
   },
   loader: async ({ context, deps }) => {
+    const options = overviewQueryOptions(context.identity.ownerKey);
     try {
-      const overview = await context.queryClient.query(
-        overviewQueryOptions(context.identity.ownerKey),
-      );
+      const overview = await context.queryClient.query(options);
       resolveSelection(overview, deps);
       return { overview };
     } catch (error) {
       if (error instanceof Error && error.message === "UNAUTHENTICATED") {
         context.queryClient.clear();
         throw redirect({ to: "/" });
+      }
+      if (error instanceof TypeError) {
+        const previous = context.queryClient.getQueryData(options.queryKey);
+        if (previous !== undefined) {
+          resolveSelection(previous, deps);
+          return { overview: previous };
+        }
       }
       throw error;
     }
