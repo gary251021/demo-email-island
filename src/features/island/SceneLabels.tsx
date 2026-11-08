@@ -8,7 +8,7 @@ import { Vector3 } from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
 import { QuickArchive } from "../mailbox/QuickArchive";
 import { getBuildingTier } from "../../lib/buildingTier";
-import { subcategoryPositions, tilePositions } from "./scene-layout";
+import { subcategoryPosition, tilePositions } from "./scene-layout";
 
 type Domain = Overview["domains"][number];
 type SceneLabelsProps = {
@@ -51,10 +51,52 @@ export function SceneLabels(props: SceneLabelsProps) {
     [props.domains, props.domain],
   );
   useFrame(({ camera, size }) => {
-    for (const label of labels) {
+    const occupied: DOMRect[] = [];
+    const ordered = labels.toSorted((a, b) => {
+      const ay = new Vector3(...a.position).project(camera).y;
+      const by = new Vector3(...b.position).project(camera).y;
+      return by - ay;
+    });
+    for (const label of ordered) {
       const element = elements.current.get(label.key);
       if (!element) continue;
       positionElement(element, label.position, { camera, size });
+      if (
+        !props.domain ||
+        (label.kind !== "subcategory" && label.kind !== "token")
+      )
+        continue;
+      projection.set(...label.position).project(camera);
+      const bounds = element.getBoundingClientRect();
+      const x = Math.min(
+        size.width - bounds.width / 2 - 10,
+        Math.max(bounds.width / 2 + 10, ((projection.x + 1) * size.width) / 2),
+      );
+      let y = Math.max(160, ((-projection.y + 1) * size.height) / 2);
+      let rect = new DOMRect(
+        x - bounds.width / 2,
+        y - bounds.height / 2,
+        bounds.width,
+        bounds.height,
+      );
+      for (const other of occupied) {
+        if (
+          rect.left < other.right + 5 &&
+          rect.right > other.left - 5 &&
+          rect.top < other.bottom + 5 &&
+          rect.bottom > other.top - 5
+        ) {
+          y = other.bottom + 5 + bounds.height / 2;
+          rect = new DOMRect(
+            x - bounds.width / 2,
+            y - bounds.height / 2,
+            bounds.width,
+            bounds.height,
+          );
+        }
+      }
+      element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+      occupied.push(rect);
     }
   });
   return (
@@ -180,18 +222,10 @@ function createLabels(domains: Overview["domains"], domain?: Domain): Label[] {
         },
       ];
     });
-  const positions = subcategoryPositions(domain.subcategories.length);
-  const labels: Label[] = [
-    {
-      key: "domain-title",
-      kind: "title",
-      text: domain.name,
-      position: [0, 0.1, -3.4],
-    },
-  ];
-  domain.subcategories.forEach((subcategory, index) => {
-    const position = positions[index];
-    if (!position) return;
+
+  const labels: Label[] = [];
+  domain.subcategories.forEach((subcategory) => {
+    const position = subcategoryPosition(subcategory.layoutSlot);
     const [x, , z] = position;
     labels.push(
       {

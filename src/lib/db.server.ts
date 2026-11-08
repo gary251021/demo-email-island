@@ -31,9 +31,15 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS subcategories (
     id TEXT PRIMARY KEY,
     owner_id TEXT NOT NULL REFERENCES user(id),
-    seed_key TEXT NOT NULL,
+    seed_key TEXT,
+    automatic_eligible INTEGER NOT NULL CHECK(automatic_eligible IN (0,1)),
+    origin TEXT NOT NULL CHECK(origin IN ('seed','split')),
+    layout_slot INTEGER NOT NULL CHECK(layout_slot >= 0),
     domain_id TEXT NOT NULL,
     name TEXT NOT NULL,
+    CHECK(origin != 'seed' OR seed_key IS NOT NULL),
+    UNIQUE(owner_id, domain_id, name),
+    UNIQUE(owner_id, domain_id, layout_slot),
     UNIQUE(owner_id, seed_key),
     UNIQUE(owner_id, id)
   );

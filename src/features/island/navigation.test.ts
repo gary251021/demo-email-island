@@ -18,7 +18,15 @@ const overview: Overview = {
       unreadCount: 3,
       pendingReplyCount: 0,
       subcategories: [
-        { id: quoteId, name: "Q4 報價", unreadCount: 3, pendingReplyCount: 0 },
+        {
+          origin: "seed",
+          automaticEligible: true,
+          layoutSlot: 0,
+          id: quoteId,
+          name: "Q4 報價",
+          unreadCount: 3,
+          pendingReplyCount: 0,
+        },
       ],
     },
     {
@@ -29,6 +37,9 @@ const overview: Overview = {
       subcategories: [
         {
           id: designId,
+          origin: "seed",
+          automaticEligible: true,
+          layoutSlot: 0,
           name: "團隊週報",
           unreadCount: 0,
           pendingReplyCount: 0,
@@ -66,6 +77,9 @@ describe("island selection", () => {
       subcategory: designId,
     });
     expect(result.subcategory).toEqual({
+      origin: "seed",
+      automaticEligible: true,
+      layoutSlot: 0,
       id: designId,
       name: "團隊週報",
       unreadCount: 0,

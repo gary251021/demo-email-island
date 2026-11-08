@@ -9,7 +9,7 @@ import { SceneLabels } from "./SceneLabels";
 import {
   tileRadius as radius,
   tilePositions,
-  subcategoryPositions,
+  subcategoryPosition,
 } from "./scene-layout";
 
 type Domain = Overview["domains"][number];
@@ -63,6 +63,17 @@ export function IslandScene(props: IslandSceneProps) {
           />
           <CameraFraming
             singleTile={Boolean(props.domain)}
+            extent={
+              props.domain
+                ? Math.max(
+                    5.7,
+                    ...props.domain.subcategories.map((category) => {
+                      const [x, , z] = subcategoryPosition(category.layoutSlot);
+                      return Math.max(Math.abs(x) + 2.1, Math.abs(z) + 2.8);
+                    }),
+                  )
+                : 10
+            }
             panelOpen={props.panelOpen}
           />
           <ambientLight intensity={0.7} />
@@ -102,7 +113,9 @@ export function IslandScene(props: IslandSceneProps) {
 function CameraFraming({
   singleTile,
   panelOpen,
+  extent,
 }: {
+  extent: number;
   singleTile: boolean;
   panelOpen: boolean;
 }) {
@@ -111,8 +124,9 @@ function CameraFraming({
     ? Math.max(size.width - 440, size.width * 0.45)
     : size.width;
   const zoom = Math.min(
-    freeWidth / (singleTile ? 11.4 : 20),
-    size.height / (singleTile ? 8.5 : 11.5),
+    freeWidth / (singleTile ? extent * 2 : 20),
+    (singleTile ? Math.max(300, size.height - 260) : size.height) /
+      (singleTile ? extent * 1.65 : 11.5),
   );
   const offset = (size.width - freeWidth) / 2 / zoom;
   return (
@@ -217,12 +231,17 @@ function DomainBoard({
   domain,
   onSubcategory,
 }: IslandSceneProps & { domain: Domain }) {
-  const placements = subcategoryPositions(domain.subcategories.length);
   return (
     <group>
       <Terrain color={terrainColors[domain.id]} scale={2.15} />
-      {domain.subcategories.map((subcategory, index) => (
-        <group key={subcategory.id} position={placements[index]}>
+      {domain.subcategories.map((subcategory) => (
+        <group
+          key={subcategory.id}
+          position={subcategoryPosition(subcategory.layoutSlot)}
+        >
+          {subcategory.origin === "split" && (
+            <Terrain color={terrainColors[domain.id]} scale={0.8} />
+          )}
           <group
             position={[0, 0.07, 0]}
             scale={0.84}

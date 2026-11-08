@@ -34,15 +34,17 @@ export function saveReply(ownerKey: string, input: ReplyInput) {
     return { id: input.replyId, bodyText: input.bodyText, createdAt };
   });
 }
+// Shared single/batch policy; the enclosing operation owns the transaction.
+export function archiveInTransaction(ownerKey: string, input: MailInput) {
+  const mail = readMail(ownerKey, input);
+  const archivedAt = mail.archivedAt ?? new Date().toISOString();
+  db.prepare(
+    "UPDATE mails SET archived_at = ? WHERE owner_id = ? AND id = ? AND archived_at IS NULL",
+  ).run(archivedAt, ownerKey, input.mailId);
+  return { archivedAt };
+}
 export function saveArchive(ownerKey: string, input: MailInput) {
-  return transaction(() => {
-    const mail = readMail(ownerKey, input);
-    const archivedAt = mail.archivedAt ?? new Date().toISOString();
-    db.prepare(
-      "UPDATE mails SET archived_at = ? WHERE owner_id = ? AND id = ? AND archived_at IS NULL",
-    ).run(archivedAt, ownerKey, input.mailId);
-    return { archivedAt };
-  });
+  return transaction(() => archiveInTransaction(ownerKey, input));
 }
 export function readQuickArchivePreview(ownerKey: string, input: MailScope) {
   return { mailIds: readActiveUnreadIds(ownerKey, input) };

@@ -39,10 +39,17 @@ async function seed(
     db.prepare("DELETE FROM subcategories WHERE owner_id = ?").run(
       owner.ownerKey,
     );
-    for (const category of categories) {
+    for (const [slot, category] of categories.entries()) {
       db.prepare(
-        "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name) VALUES (?,?,?,?,?)",
-      ).run(category.id, owner.ownerKey, category.id, domain.id, category.name);
+        "INSERT INTO subcategories (id,owner_id,seed_key,domain_id,name,automatic_eligible,origin,layout_slot) VALUES (?,?,?,?,?,1,'seed',?)",
+      ).run(
+        category.id,
+        owner.ownerKey,
+        category.id,
+        domain.id,
+        category.name,
+        slot,
+      );
       for (let index = 0; index < category.count + (read ? 1 : 0); index++) {
         const id = randomUUID();
         db.prepare(

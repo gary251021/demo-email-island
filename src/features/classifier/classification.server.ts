@@ -137,21 +137,27 @@ export function setCategory(
   mailId: string,
   subcategoryId: string,
 ) {
-  return transaction(() => {
-    const mail = getClassificationInputs(ownerId, [mailId])[0];
-    if (
-      !mail ||
-      !applyCategory(ownerId, mailId, subcategoryId, mail.placementRevision)
-    )
-      throw new Error("NOT_FOUND");
-    db.prepare(
-      `INSERT INTO classification_overrides (owner_id,mail_id,subcategory_id,updated_at) VALUES (?,?,?,?) ON CONFLICT(owner_id,mail_id) DO UPDATE SET subcategory_id=excluded.subcategory_id,updated_at=excluded.updated_at`,
-    ).run(ownerId, mailId, subcategoryId, new Date().toISOString());
-    db.prepare(
-      "UPDATE classification_work SET resolved=1,outcome=CASE WHEN outcome='pending' THEN 'superseded' ELSE outcome END WHERE owner_id=? AND mail_id=?",
-    ).run(ownerId, mailId);
-    return { mailId, subcategoryId };
-  });
+  return transaction(() => applyManualCategory(ownerId, mailId, subcategoryId));
+}
+// Used by a confirmed batch under the shared SQLite transaction.
+export function applyManualCategory(
+  ownerId: string,
+  mailId: string,
+  subcategoryId: string,
+) {
+  const mail = getClassificationInputs(ownerId, [mailId])[0];
+  if (
+    !mail ||
+    !applyCategory(ownerId, mailId, subcategoryId, mail.placementRevision)
+  )
+    throw new Error("NOT_FOUND");
+  db.prepare(
+    `INSERT INTO classification_overrides (owner_id,mail_id,subcategory_id,updated_at) VALUES (?,?,?,?) ON CONFLICT(owner_id,mail_id) DO UPDATE SET subcategory_id=excluded.subcategory_id,updated_at=excluded.updated_at`,
+  ).run(ownerId, mailId, subcategoryId, new Date().toISOString());
+  db.prepare(
+    "UPDATE classification_work SET resolved=1,outcome=CASE WHEN outcome='pending' THEN 'superseded' ELSE outcome END WHERE owner_id=? AND mail_id=?",
+  ).run(ownerId, mailId);
+  return { mailId, subcategoryId };
 }
 // Downstream 06 receives original evidence and an explicit validity/source decision.
 export function getStoredClassifications(ownerId: string, mailIds: string[]) {
