@@ -13,6 +13,9 @@ import {
   expect,
 } from "./acceptance-fixtures";
 
+const mailWriteResultSchema = mailDetailSchema.pick({ id: true });
+type MailWriteResult = z.infer<typeof mailWriteResultSchema>;
+
 export async function story(page: Page) {
   const owner = await identity(page);
   const domain = (await overview(page)).domains.find(
@@ -115,7 +118,7 @@ export async function writeMail(
       const result=mod.writeMailboxMail(${JSON.stringify(ownerKey)},${JSON.stringify(input)});
       process.stdout.write(JSON.stringify(result));
     } finally {await server.close();}`;
-  return new Promise<{ id: string }>((resolve, reject) => {
+  return new Promise<MailWriteResult>((resolve, reject) => {
     const child = spawn(
       process.execPath,
       ["--input-type=module", "-e", script],
@@ -140,7 +143,8 @@ export async function writeMail(
         return;
       }
       try {
-        resolve(JSON.parse(output));
+        const decoded: unknown = JSON.parse(output);
+        resolve(mailWriteResultSchema.parse(decoded));
       } catch {
         reject(new Error(output + errors));
       }

@@ -210,6 +210,7 @@ for (const change of [
     const other = (await overview(page)).domains[0]?.subcategories[0];
     if (!other) throw new Error("Missing other category");
     const original = sourceMail(app.dbPath, input);
+    expect(original.subject).toBe("交付確認 · 10");
     const write: Record<string, unknown> = {
       ...original,
       domainId: input.domainId,
@@ -248,6 +249,45 @@ for (const change of [
     if (change === "move-out") expectedCount = 29;
     if (change === "add" || change === "move-in") expectedCount = 31;
     expect(current.mails).toHaveLength(expectedCount);
+    let expectedSubjects = expectedStages.flatMap((stage) =>
+      Array.from({ length: 10 }, (_, index) => `${stage.title} · ${index + 1}`),
+    );
+    if (change === "add" || change === "move-in")
+      expectedSubjects.push(String(write.subject));
+    if (change === "move-out")
+      expectedSubjects = expectedSubjects.filter(
+        (subject) => subject !== original.subject,
+      );
+    if (change === "subject")
+      expectedSubjects = expectedSubjects.map((subject) =>
+        subject === original.subject ? String(write.subject) : subject,
+      );
+    const renderedList = page.getByRole("list", {
+      name: "郵件列表",
+      exact: true,
+    });
+    await expect(renderedList.getByRole("listitem")).toHaveCount(expectedCount);
+    for (const subject of expectedSubjects)
+      await expect(
+        renderedList.getByText(subject, { exact: true }),
+      ).toHaveCount(1);
+    if (change === "move-out") {
+      await expect(
+        renderedList.getByText(original.subject, { exact: true }),
+      ).toHaveCount(0);
+    } else {
+      const affectedRow = subjectButton(page, String(write.subject));
+      await expect(
+        affectedRow.getByText(String(write.sender), { exact: true }),
+      ).toBeVisible();
+      await expect(affectedRow.locator("time")).toHaveAttribute(
+        "datetime",
+        String(write.receivedAt),
+      );
+      await expect(affectedRow.locator("time")).toHaveText(
+        change === "receivedAt" ? "11月1日" : "10月30日",
+      );
+    }
     const target = {
       domainId: write.domainId,
       subcategoryId: write.subcategoryId,
