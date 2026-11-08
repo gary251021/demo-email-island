@@ -100,7 +100,7 @@ test("timeline-tier-boundaries", async ({ page, app }) => {
     if (count === 10 || count === 29)
       await expect(
         page.getByRole("button", {
-          name: `財務帳單，未讀 ${count} 封，Lv. 3`,
+          name: `財務帳單，未讀 ${count} 封，待回覆 0 封，Lv. 3`,
           exact: true,
         }),
       ).toBeVisible();
@@ -137,7 +137,7 @@ test("read-crosses-city-boundaries", async ({ page, app }) => {
     await page.getByRole("button", { name: "關閉郵件", exact: true }).click();
     await expect(
       page.getByRole("button", {
-        name: `待處理帳單，未讀 ${count - 1} 封，Lv. ${count === 10 ? 2 : 3}`,
+        name: `待處理帳單，未讀 ${count - 1} 封，待回覆 0 封，Lv. ${count === 10 ? 2 : 3}`,
         exact: true,
       }),
     ).toBeFocused();
