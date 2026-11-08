@@ -482,9 +482,7 @@ test("NAV-1 account-login-initializes-mailbox", async ({
     page.getByRole("heading", { name: "郵件群島", exact: true }),
   ]);
   await login.click();
-  await expect(
-    page.getByRole("button", { name: "核心專案", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^核心專案，/ })).toBeVisible();
   expect((await overview(page)).domains.map((domain) => domain.name)).toEqual(
     domainNames,
   );
@@ -545,9 +543,7 @@ test("NAV-2 logout-revokes-session-and-protects-mailbox", async ({
     nav.getByRole("button", { name: "登入", exact: true }),
   ).toBeVisible();
   await nav.getByRole("button", { name: "登入", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "核心專案", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^核心專案，/ })).toBeVisible();
   expect((await identity(page)).ownerKey).not.toBe(oldOwner.ownerKey);
   const freshMail = await q4(page);
   expect(freshMail.mail.id).not.toBe(oldMail.mail.id);
@@ -574,7 +570,7 @@ test("NAV-2 logout-revokes-session-and-protects-mailbox", async ({
   } finally {
     database.close();
   }
-  await page.getByRole("button", { name: "核心專案", exact: true }).click();
+  await page.getByRole("button", { name: /^核心專案，/ }).click();
   await captureAccountState(page, "core-desktop", [
     page.getByRole("button", { name: "返回群島", exact: true }),
     page.getByRole("heading", { name: "核心專案", exact: true }),
@@ -613,9 +609,7 @@ test("NAV-3 keyboard-pending-and-logout-retry", async ({
   });
   await expect.poll(() => signInRequests).toBe(1);
   releaseLogin();
-  await expect(
-    page.getByRole("button", { name: "核心專案", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^核心專案，/ })).toBeVisible();
   const owner = await identity(page);
   expect((await q4(page)).mails).toHaveLength(3);
   let signOutRequests = 0;
@@ -638,9 +632,7 @@ test("NAV-3 keyboard-pending-and-logout-retry", async ({
   await expect(nav.getByRole("alert")).toContainText("登出失敗");
   expect(signOutRequests).toBe(1);
   expect(await identity(page)).toEqual(owner);
-  await expect(
-    page.getByRole("button", { name: "核心專案", exact: true }),
-  ).toBeVisible();
+  await expect(page.getByRole("button", { name: /^核心專案，/ })).toBeVisible();
   await expect(logout).toBeEnabled();
   await page.setViewportSize({ width: 390, height: 844 });
   await captureAccountState(page, "logout-failure-mobile", []);
