@@ -1,1 +1,456 @@
 @import "tailwindcss";
+
+:root {
+  font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  color: #243d3b;
+  background: #75aaa9;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --paper: #fcf8ee;
+  --ink: #243d3b;
+  --muted: #536b63;
+  --control-shadow: 0 3px 7px #35574d35, 0 1px 2px #35574d26;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+}
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid #315e57;
+  outline-offset: 4px;
+}
+::selection {
+  background: #d6e1b4;
+  color: #243d3b;
+}
+::-webkit-scrollbar {
+  width: 7px;
+}
+::-webkit-scrollbar-thumb {
+  background: #b2c0b6;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-track {
+  background: #f5f1e7;
+}
+.island-experience {
+  position: relative;
+  width: 100%;
+  height: 100dvh;
+  min-height: 400px;
+  overflow: hidden;
+  background: #75aaa9;
+}
+.island-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  margin: 0;
+  padding: 5px 15px;
+  border: 0;
+  border-radius: 999px;
+  color: #24352e;
+  background: #fffdf7;
+  box-shadow: var(--control-shadow);
+  font-size: clamp(12px, 1.05vw, 17px);
+  line-height: 1.35;
+  font-weight: 650;
+  white-space: nowrap;
+  transition:
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+button.island-label:hover {
+  background: #f4ead4;
+  box-shadow: 0 4px 10px #35574d50;
+}
+.island-label[aria-pressed="true"] {
+  background: #ecdfbf;
+}
+.domain-title {
+  font-size: clamp(15px, 1.35vw, 22px);
+  padding: 7px 20px;
+}
+.unread-token {
+  display: block;
+  padding: 4px 10px;
+  color: #4f4834;
+  background: #f8ecd4;
+  border-radius: 999px;
+  box-shadow: 0 2px 4px #5c55362b;
+  font-size: clamp(11px, 0.83vw, 14px);
+  line-height: 1.35;
+  font-weight: 600;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.building-anchor {
+  display: block;
+  width: 2px;
+  height: 2px;
+  pointer-events: none;
+}
+.island-back {
+  position: absolute;
+  top: 25px;
+  left: 28px;
+  z-index: 25;
+  padding: 10px 17px;
+}
+.island-back svg,
+.icon-button svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.scene-message {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: min(80%, 32rem);
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: #24413d;
+}
+.island-error {
+  position: absolute;
+  z-index: 25;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 26px;
+  width: min(88%, 360px);
+  background: var(--paper);
+  border-radius: 14px;
+  box-shadow: 0 8px 30px #30534f33;
+  text-align: center;
+}
+.island-error h1 {
+  margin: 0 0 12px;
+  font-size: 23px;
+}
+.session-error {
+  position: absolute;
+  left: 24px;
+  bottom: 20px;
+  max-width: 340px;
+  padding: 12px 18px;
+  background: var(--paper);
+  border-radius: 12px;
+}
+.mail-panel {
+  position: absolute;
+  top: 22px;
+  right: 22px;
+  bottom: 22px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  overflow: hidden;
+  background: var(--paper);
+  border-radius: 16px;
+  box-shadow: 0 12px 40px #224e4b30;
+  animation: card-arrive 260ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.mail-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 29px 27px 23px;
+  border-bottom: 1px solid #dfe1d4;
+}
+.mail-panel-header h1 {
+  margin: 0;
+  color: #2d463e;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+.mail-panel-header p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+.icon-button {
+  display: grid;
+  place-items: center;
+  padding: 6px;
+  border: 0;
+  border-radius: 50%;
+  color: #52685c;
+  background: #eaece0;
+}
+.icon-button:hover {
+  background: #dfe3d4;
+}
+.mail-list {
+  margin: 0;
+  padding: 0 25px;
+  list-style: none;
+  overflow: auto;
+}
+.mail-list li + li {
+  border-top: 1px solid #e3e5d9;
+}
+.mail-row {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding: 23px 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  text-align: left;
+}
+.mail-row:hover .mail-subject {
+  color: #62803e;
+}
+.mail-row-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.mail-sender {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.mail-row time {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.mail-subject {
+  display: block;
+  padding-right: 35px;
+  font-size: 16px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+.mail-unread {
+  position: absolute;
+  bottom: 29px;
+  right: 0;
+  font-size: 11px;
+  color: #6b562f;
+}
+.mail-reader {
+  padding: 23px 27px 32px;
+  overflow: auto;
+}
+.text-button {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #3f6558;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.text-button:hover {
+  color: #203d33;
+}
+.mail-reader h2 {
+  margin: 32px 0 20px;
+  color: #2d463e;
+  font-size: 25px;
+  line-height: 1.5;
+  letter-spacing: -0.025em;
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.mail-envelope {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 23px;
+  color: var(--muted);
+  font-size: 12px;
+  border-bottom: 1px solid #e3e5d9;
+}
+.mail-envelope p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.mail-body-text {
+  margin-top: 25px;
+  color: #354d43;
+  font-size: 15px;
+  line-height: 1.95;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.read-receipt {
+  margin-top: 34px;
+  color: #536b63;
+  font-size: 12px;
+}
+.save-error {
+  padding: 13px 15px;
+  background: #f0e3d3;
+  border-radius: 10px;
+  color: #754b37;
+}
+.save-error p {
+  margin: 0 0 12px;
+}
+.save-error .text-button {
+  color: #754b37;
+}
+.panel-message {
+  margin: 0;
+  padding: 28px;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.7;
+}
+.entry-screen {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  overflow: hidden;
+  background: #dfe8da;
+}
+.entry-watermark {
+  position: absolute;
+  right: -6vw;
+  bottom: -25vw;
+  color: #cbd8c5;
+  font-family: "Songti TC", "Noto Serif TC", serif;
+  font-size: 80vw;
+  line-height: 1.2;
+  pointer-events: none;
+  user-select: none;
+}
+.entry-content {
+  position: relative;
+  width: min(100% - 48px, 370px);
+  padding: 45px 0;
+}
+.entry-content h1 {
+  margin: 0 0 20px;
+  color: #304d40;
+  font-family: "Songti TC", "Noto Serif TC", serif;
+  font-size: clamp(48px, 5vw, 68px);
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+.entry-content > p {
+  margin: 0 0 38px;
+  color: #536c5b;
+  font-size: 15px;
+  line-height: 1.8;
+}
+.entry-content .entry-eyebrow {
+  margin: 0 0 18px;
+  color: #536c5b;
+  font-size: 13px;
+}
+.entry-primary,
+.entry-google {
+  display: block;
+  width: 100%;
+  padding: 15px 24px;
+  border: 0;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+}
+.entry-primary {
+  color: #fffdf5;
+  background: #375e4b;
+  box-shadow: 0 5px 15px #32513d20;
+}
+.entry-primary:hover:enabled {
+  background: #2e503f;
+}
+.entry-primary:disabled {
+  opacity: 0.65;
+}
+.entry-google {
+  margin-top: 12px;
+  color: #6c786c;
+  background: #cdd6c9;
+}
+.entry-content [role="status"],
+.entry-content [role="alert"] {
+  margin: 18px 0 0;
+  font-size: 13px;
+}
+@keyframes card-arrive {
+  from {
+    transform: translateX(14px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@media (max-width: 700px) {
+  .island-back {
+    left: 15px;
+    top: 16px;
+    padding: 9px 13px;
+  }
+  .mail-panel {
+    right: 12px;
+    top: 72px;
+    bottom: 12px;
+    width: min(360px, calc(100% - 24px));
+  }
+  .mail-panel-header {
+    padding: 22px;
+  }
+  .mail-reader {
+    padding: 22px;
+  }
+  .mail-panel-header h1 {
+    font-size: 21px;
+  }
+  .mail-reader h2 {
+    font-size: 22px;
+  }
+  .island-label {
+    padding: 4px 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
