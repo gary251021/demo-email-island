@@ -1,0 +1,4 @@
+# Agent skills and hooks are vendored tooling, not application code; exclude them from GitHub language stats.
+.agents/** linguist-vendored
+.pi/** linguist-vendored
+.codex/** linguist-vendored
