@@ -128,6 +128,7 @@ function prepare(ownerId: string, input: PrepareInput) {
       sender: mail.sender,
       subject: mail.subject,
       readAt: mail.readAt,
+      placementRevision: mail.placementRevision,
       manual: classificationsManual(plan.snapshot, mail.id),
     })),
     diagnostics: {

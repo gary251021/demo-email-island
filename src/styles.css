@@ -934,3 +934,16 @@ button.island-label:hover {
     padding: 4px 7px;
   }
 }
+.placed-label::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--leader-length, 0px);
+  height: 1px;
+  background: #476c6770;
+  transform: rotate(var(--leader-angle, 0rad));
+  transform-origin: left center;
+  z-index: -1;
+  pointer-events: none;
+}

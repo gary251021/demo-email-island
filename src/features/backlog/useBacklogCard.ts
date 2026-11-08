@@ -1,6 +1,7 @@
 import { mailListQueryOptions } from "../mailbox/mailbox.queries";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { mailInput } from "../../lib/mailbox";
 import { backlogName } from "../../lib/backlog";
 import type { Overview } from "../../lib/mailbox";
 import { prepareBacklog, commitBacklog } from "./backlog.functions";
@@ -63,9 +64,15 @@ export function useBacklogCard(
             groupId: group.groupId,
             name: previous?.name ?? group.sender,
             mailIds: group.mailIds.filter((id) => {
-              if (previous && plan?.mails.some((mail) => mail.id === id))
-                return previous.mailIds.includes(id);
-              return !result.mails.find((mail) => mail.id === id)?.manual;
+              const current = result.mails.find((mail) => mail.id === id)!;
+              const before = plan?.mails.find((mail) => mail.id === id);
+              if (
+                current.manual &&
+                before?.placementRevision !== current.placementRevision
+              )
+                return false;
+              if (previous && before) return previous.mailIds.includes(id);
+              return !current.manual;
             }),
           };
         }),
@@ -94,7 +101,7 @@ export function useBacklogCard(
     setBusy(true);
     try {
       await queryClient.invalidateQueries(
-        { queryKey: ["mailbox", ownerKey], refetchType: "all" },
+        { queryKey: ["mailbox", ownerKey] },
         { throwOnError: true },
       );
       await queryClient.invalidateQueries({
@@ -126,6 +133,20 @@ export function useBacklogCard(
                 },
         },
       });
+      if (action === "split") {
+        const moved = new Set(groups.flatMap((group) => group.mailIds));
+        queryClient.removeQueries({
+          queryKey: ["mailbox", ownerKey, "detail"],
+          predicate: (query) => {
+            const input = mailInput.safeParse(query.queryKey[3]);
+            return (
+              input.success &&
+              input.data.subcategoryId === category.id &&
+              moved.has(input.data.mailId)
+            );
+          },
+        });
+      }
       setSaved(true);
       queryClient.removeQueries({
         queryKey: ["backlog-draft", ownerKey, category.id],

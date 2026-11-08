@@ -1,3 +1,4 @@
+import { projectedModelBounds, placeLabel } from "./label-layout";
 import { useMemo, useRef } from "react";
 import type { RefObject } from "react";
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
@@ -45,13 +46,20 @@ const screenCenter = (
 
 export function SceneLabels(props: SceneLabelsProps) {
   const elements = useRef(new Map<string, HTMLDivElement>());
+  const placements = useRef(new Map<string, { x: number; y: number }>());
   const get = useThree((state) => state.get);
   const labels = useMemo(
     () => createLabels(props.domains, props.domain),
     [props.domains, props.domain],
   );
-  useFrame(({ camera, size }) => {
-    const occupied: DOMRect[] = [];
+  useFrame(({ camera, size, scene }) => {
+    const models = projectedModelBounds(
+      scene,
+      camera,
+      size,
+      props.domain?.subcategories.map((category) => category.id) ?? [],
+    );
+    const occupied: DOMRect[] = [...models.values()];
     const ordered = labels.toSorted((a, b) => {
       const ay = new Vector3(...a.position).project(camera).y;
       const by = new Vector3(...b.position).project(camera).y;
@@ -60,6 +68,16 @@ export function SceneLabels(props: SceneLabelsProps) {
     for (const label of ordered) {
       const element = elements.current.get(label.key);
       if (!element) continue;
+      if (label.kind === "anchor") {
+        const model = models.get(label.resourceId);
+        if (model)
+          element.dataset.modelBounds = JSON.stringify({
+            x: model.x,
+            y: model.y,
+            width: model.width,
+            height: model.height,
+          });
+      }
       positionElement(element, label.position, { camera, size });
       if (
         !props.domain ||
@@ -68,35 +86,30 @@ export function SceneLabels(props: SceneLabelsProps) {
         continue;
       projection.set(...label.position).project(camera);
       const bounds = element.getBoundingClientRect();
-      const x = Math.min(
-        size.width - bounds.width / 2 - 10,
-        Math.max(bounds.width / 2 + 10, ((projection.x + 1) * size.width) / 2),
+      const desired = {
+        x: ((projection.x + 1) * size.width) / 2,
+        y: ((-projection.y + 1) * size.height) / 2,
+      };
+      const frameKey = `${label.key}:${bounds.width}:${bounds.height}:${camera.matrixWorldInverse.elements.join(",")}:${camera.projectionMatrix.elements.join(",")}`;
+      const { x, y } = placeLabel(
+        {
+          desired,
+          previous: placements.current.get(frameKey),
+          label: bounds,
+          size,
+        },
+        occupied,
       );
-      let y = Math.max(160, ((-projection.y + 1) * size.height) / 2);
-      let rect = new DOMRect(
-        x - bounds.width / 2,
-        y - bounds.height / 2,
-        bounds.width,
-        bounds.height,
-      );
-      for (const other of occupied) {
-        if (
-          rect.left < other.right + 5 &&
-          rect.right > other.left - 5 &&
-          rect.top < other.bottom + 5 &&
-          rect.bottom > other.top - 5
-        ) {
-          y = other.bottom + 5 + bounds.height / 2;
-          rect = new DOMRect(
-            x - bounds.width / 2,
-            y - bounds.height / 2,
-            bounds.width,
-            bounds.height,
-          );
-        }
-      }
+      placements.current.set(frameKey, { x, y });
       element.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      occupied.push(rect);
+      const dx = desired.x - x,
+        dy = desired.y - y;
+      const length = Math.hypot(dx, dy);
+      element.style.setProperty(
+        "--leader-length",
+        `${length > 12 ? length : 0}px`,
+      );
+      element.style.setProperty("--leader-angle", `${Math.atan2(dy, dx)}rad`);
     }
   });
   return (
@@ -112,7 +125,11 @@ export function SceneLabels(props: SceneLabelsProps) {
           {labels.map((label) => (
             <div
               key={label.key}
-              className="scene-label-position"
+              className={
+                label.kind === "subcategory" || label.kind === "token"
+                  ? "scene-label-position placed-label"
+                  : "scene-label-position"
+              }
               ref={(element) => {
                 if (element) {
                   elements.current.set(label.key, element);

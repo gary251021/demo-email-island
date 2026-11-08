@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Canvas, useThree } from "@react-three/fiber";
+import { Canvas, useFrame } from "@react-three/fiber";
 import { OrthographicCamera } from "@react-three/drei";
-import { ExtrudeGeometry, Shape } from "three";
+import {
+  ExtrudeGeometry,
+  Shape,
+  Box3,
+  Vector3,
+  OrthographicCamera as ThreeOrthographicCamera,
+} from "three";
 import type { DomainId, Overview } from "../../lib/mailbox";
 import { Building } from "../building/Building";
 import { SceneLabels } from "./SceneLabels";
@@ -63,17 +69,6 @@ export function IslandScene(props: IslandSceneProps) {
           />
           <CameraFraming
             singleTile={Boolean(props.domain)}
-            extent={
-              props.domain
-                ? Math.max(
-                    5.7,
-                    ...props.domain.subcategories.map((category) => {
-                      const [x, , z] = subcategoryPosition(category.layoutSlot);
-                      return Math.max(Math.abs(x) + 2.1, Math.abs(z) + 2.8);
-                    }),
-                  )
-                : 10
-            }
             panelOpen={props.panelOpen}
           />
           <ambientLight intensity={0.7} />
@@ -113,22 +108,55 @@ export function IslandScene(props: IslandSceneProps) {
 function CameraFraming({
   singleTile,
   panelOpen,
-  extent,
 }: {
-  extent: number;
   singleTile: boolean;
   panelOpen: boolean;
 }) {
-  const { size } = useThree();
-  const freeWidth = panelOpen
-    ? Math.max(size.width - 440, size.width * 0.45)
-    : size.width;
-  const zoom = Math.min(
-    freeWidth / (singleTile ? extent * 2 : 20),
-    (singleTile ? Math.max(300, size.height - 260) : size.height) /
-      (singleTile ? extent * 1.65 : 11.5),
-  );
-  const offset = (size.width - freeWidth) / 2 / zoom;
+  useFrame(({ scene, size, camera }) => {
+    if (!(camera instanceof ThreeOrthographicCamera)) return;
+    const board = scene.getObjectByName("domain-board");
+    const center = new Vector3();
+    let spanX = 20,
+      spanY = 11.5;
+    if (singleTile && board) {
+      const box = new Box3();
+      board.traverse((object) => {
+        if (object.name === "island-terrain")
+          box.union(new Box3().setFromObject(object));
+        if (object.name.startsWith("building-")) {
+          const anchor = object.getWorldPosition(new Vector3());
+          // Fixed family headroom keeps the camera still when reading changes a tier.
+          anchor.y += 1.7;
+          box.union(
+            new Box3().setFromCenterAndSize(anchor, new Vector3(3.6, 4.2, 3.6)),
+          );
+        }
+      });
+      box.getCenter(center);
+      const dimensions = box.getSize(new Vector3());
+      spanX = dimensions.x + 2;
+      spanY =
+        dimensions.y * (12 / Math.sqrt(340)) +
+        dimensions.z * (14 / Math.sqrt(340)) +
+        2;
+    }
+    const panelSpace = panelOpen && size.width > 700 ? 440 : 0;
+    const freeWidth = size.width - panelSpace;
+    const freeHeight = singleTile
+      ? Math.max(300, size.height - 220)
+      : size.height;
+    const zoom = Math.min(freeWidth / spanX, freeHeight / spanY);
+    center.x += panelSpace / 2 / zoom;
+    camera.position.set(center.x, center.y + 14, center.z + 12);
+    camera.lookAt(center);
+    camera.zoom = zoom;
+    camera.left = -size.width / 2;
+    camera.right = size.width / 2;
+    camera.top = size.height / 2;
+    camera.bottom = -size.height / 2;
+    camera.updateProjectionMatrix();
+    camera.updateMatrixWorld();
+  }, -1);
   return (
     <OrthographicCamera
       makeDefault
@@ -136,15 +164,7 @@ function CameraFraming({
       position={[0, 14, 12]}
       near={0.1}
       far={100}
-      zoom={zoom}
-      left={-size.width / 2 + offset}
-      right={size.width / 2 + offset}
-      top={size.height / 2}
-      bottom={-size.height / 2}
-      onUpdate={(camera) => {
-        camera.lookAt(0, 0, 0);
-        camera.updateProjectionMatrix();
-      }}
+      zoom={70}
     />
   );
 }
@@ -171,7 +191,7 @@ function Terrain({ color, scale = 1 }: { color: string; scale?: number }) {
   }, []);
   useEffect(() => () => geometry.dispose(), [geometry]);
   return (
-    <group scale={[scale, 1, scale]}>
+    <group name="island-terrain" scale={[scale, 1, scale]}>
       <mesh
         geometry={geometry}
         rotation={[-Math.PI / 2, 0, 0]}
@@ -232,7 +252,7 @@ function DomainBoard({
   onSubcategory,
 }: IslandSceneProps & { domain: Domain }) {
   return (
-    <group>
+    <group name="domain-board">
       <Terrain color={terrainColors[domain.id]} scale={2.15} />
       {domain.subcategories.map((subcategory) => (
         <group
@@ -243,6 +263,7 @@ function DomainBoard({
             <Terrain color={terrainColors[domain.id]} scale={0.8} />
           )}
           <group
+            name={`building-${subcategory.id}`}
             position={[0, 0.07, 0]}
             scale={0.84}
             onClick={(event) => {

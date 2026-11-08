@@ -904,6 +904,12 @@ test("AC13 delayed-real-worker-and-new-classified-import", async ({
         expect.objectContaining({ subject: heldSubject }),
       ]),
     );
+  expect(resultData(await call(page, "getClassificationStatus"))).toMatchObject(
+    { status: "pending" },
+  );
+  await expect(
+    page.getByRole("status", { name: "郵件分類", exact: true }),
+  ).toHaveText("pending");
   const plan = await prepare(page, category.id);
   const moved = plan.mails.find((mail) => mail.subject === heldSubject)!.id;
   const before = service(app, owner, "evidence");
@@ -938,6 +944,27 @@ test("AC13 delayed-real-worker-and-new-classified-import", async ({
     `SELECT subcategory_id FROM mails WHERE owner_id='${owner}' AND id='${moved}'`,
   )[0]?.subcategory_id;
   expect(placed).not.toBe(category.id);
+  await page.reload();
+  const split = (await overview(page)).domains
+    .find((d) => d.id === "newsletters")!
+    .subcategories.find((c) => c.id === placed)!;
+  expect(resultData(await call(page, "getClassificationStatus"))).toMatchObject(
+    { status: "completed" },
+  );
+  await expect(
+    page.getByRole("status", { name: "郵件分類", exact: true }),
+  ).toHaveText("completed");
+  await page.goto(
+    app.url +
+      `/island?domain=newsletters&subcategory=${split.id}&mail=${moved}`,
+  );
+  await expect(
+    page.getByRole("article", { name: heldSubject, exact: true }),
+  ).toContainText("內容 A 0");
+  await page.getByRole("button", { name: "修改分類", exact: true }).click();
+  await expect(
+    page.getByRole("option", { name: split.name, exact: true }),
+  ).toHaveAttribute("value", split.id);
   const subject = "新信原候選";
   await fetch(provider + "/control", {
     method: "POST",

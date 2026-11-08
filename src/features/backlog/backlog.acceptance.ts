@@ -46,6 +46,7 @@ export const planSchema = z.object({
       id: z.string(),
       subject: z.string(),
       manual: z.boolean(),
+      placementRevision: z.number().int().nonnegative(),
       readAt: z.string().nullable(),
     }),
   ),
