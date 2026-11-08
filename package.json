@@ -14,7 +14,10 @@
     "format": "prettier --write src/",
     "harness-signal": "bash scripts/harnessSignal.sh",
     "sync:skills": "node .agents/scripts/syncSkills.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "test:e2e": "playwright test",
+    "format:check": "prettier --check src/",
+    "auth:generate": "auth generate --config scripts/auth-schema.config.ts --output src/lib/auth-schema.sql --yes"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -23,6 +26,7 @@
     "@tanstack/react-router": "^1.170.46",
     "@tanstack/react-router-ssr-query": "^1.167.3",
     "@tanstack/react-start": "^1.169.4",
+    "better-auth": "1.7.18",
     "clsx": "^2.1.1",
     "react": "~19.3.1",
     "react-dom": "~19.3.1",
@@ -32,6 +36,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "1.65.0",
     "@tailwindcss/vite": "^4.3.4",
     "@tanstack/eslint-plugin-query": "^5.105.3",
     "@tanstack/eslint-plugin-router": "^1.162.0",
@@ -42,6 +47,7 @@
     "@types/three": "^0.187.0",
     "@vitejs/plugin-react": "^6.2.1",
     "@vitest/coverage-v8": "^5.1.0",
+    "auth": "1.7.18",
     "dependency-cruiser": "^18.7.2",
     "eslint": "^10.14.0",
     "eslint-plugin-react-hooks": "^7.1.1",

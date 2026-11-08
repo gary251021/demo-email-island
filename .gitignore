@@ -8,3 +8,7 @@ coverage
 __pycache__/
 *.pyc
 .env
+
+.data/
+playwright-report/
+test-results/
