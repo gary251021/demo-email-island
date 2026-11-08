@@ -47,7 +47,7 @@ const screenCenter = (
 export function SceneLabels(props: SceneLabelsProps) {
   const elements = useRef(new Map<string, HTMLDivElement>());
   const placements = useRef(new Map<string, { x: number; y: number }>());
-  const get = useThree((state) => state.get);
+  const invalidate = useThree((state) => state.invalidate);
   const labels = useMemo(
     () => createLabels(props.domains, props.domain),
     [props.domains, props.domain],
@@ -87,8 +87,11 @@ export function SceneLabels(props: SceneLabelsProps) {
       if (
         !props.domain ||
         (label.kind !== "subcategory" && label.kind !== "token")
-      )
+      ) {
+        element.dataset.layoutReady = "true";
+        element.style.visibility = "visible";
         continue;
+      }
       projection.set(...label.position).project(camera);
       const bounds = element.getBoundingClientRect();
       const desired = {
@@ -115,6 +118,8 @@ export function SceneLabels(props: SceneLabelsProps) {
         `${length > 12 ? length : 0}px`,
       );
       element.style.setProperty("--leader-angle", `${Math.atan2(dy, dx)}rad`);
+      element.dataset.layoutReady = "true";
+      element.style.visibility = "visible";
     }
   });
   return (
@@ -138,7 +143,10 @@ export function SceneLabels(props: SceneLabelsProps) {
               ref={(element) => {
                 if (element) {
                   elements.current.set(label.key, element);
-                  positionElement(element, label.position, get());
+                  if (element.dataset.layoutReady !== "true") {
+                    element.style.visibility = "hidden";
+                    invalidate();
+                  }
                 } else elements.current.delete(label.key);
               }}
             >
