@@ -669,6 +669,84 @@ test("NAV-3 keyboard-pending-and-logout-retry", async ({
   ).toHaveLength(1);
 });
 
+test("NAV-3 returned-http-error-preserves-session-and-retry", async ({
+  page,
+  app,
+  browserErrors,
+}) => {
+  await enter(page, app.url);
+  await readQ4(page);
+  const owner = await identity(page);
+  const before = await q4(page);
+  let signOutRequests = 0;
+  await page.route("**/api/auth/sign-out", async (route) => {
+    signOutRequests++;
+    if (signOutRequests === 1) {
+      await route.continue({ postData: "{" });
+      return;
+    }
+    await route.continue();
+  });
+  const nav = page.getByRole("navigation", { name: "帳戶導覽", exact: true });
+  const rejectedResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/api/auth/sign-out"),
+  );
+  await nav.getByRole("button", { name: "登出", exact: true }).click();
+  const rejection = await rejectedResponse;
+  expect(rejection.request().method()).toBe("POST");
+  expect(rejection.status()).toBe(400);
+  expect(await rejection.json()).toMatchObject({ code: "BAD_REQUEST" });
+  await expect(nav.getByRole("alert")).toContainText("登出失敗");
+  await expect(
+    nav.getByRole("button", { name: "重試", exact: true }),
+  ).toBeEnabled();
+  expect(signOutRequests).toBe(1);
+  const retainedSession = await page.request.get(
+    `${app.url}/api/auth/get-session`,
+  );
+  expect(retainedSession.ok()).toBe(true);
+  expect(await retainedSession.json()).toMatchObject({
+    user: { id: owner.ownerKey },
+  });
+  expect(await identity(page)).toEqual(owner);
+  await expect(
+    page.getByRole("article", { name: "請確認報價項目", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("第四季的報價已整理完成", { exact: false }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Q4 報價未讀 2", { exact: true })).toHaveText(
+    "未讀 2",
+  );
+  expect(await q4(page)).toEqual(before);
+  const successfulResponse = page.waitForResponse((response) =>
+    response.url().endsWith("/api/auth/sign-out"),
+  );
+  await nav.getByRole("button", { name: "重試", exact: true }).click();
+  expect((await successfulResponse).status()).toBe(200);
+  await expect(
+    nav.getByRole("button", { name: "登入", exact: true }),
+  ).toBeVisible();
+  expect(signOutRequests).toBe(2);
+  const clearedSession = await page.request.get(
+    `${app.url}/api/auth/get-session`,
+  );
+  expect(clearedSession.ok()).toBe(true);
+  expect(await clearedSession.json()).toBeNull();
+  expect(resultData(await rpc(page, "getIdentity"))).toBeNull();
+  await expect(
+    page.getByRole("article", { name: "請確認報價項目", exact: true }),
+  ).toHaveCount(0);
+  const expectedHttpError =
+    "Failed to load resource: the server responded with a status of 400 (400)";
+  expect(browserErrors.filter((error) => error !== expectedHttpError)).toEqual(
+    [],
+  );
+  expect(
+    browserErrors.filter((error) => error === expectedHttpError),
+  ).toHaveLength(1);
+});
+
 async function captureAccountState(
   page: Page,
   name: string,
